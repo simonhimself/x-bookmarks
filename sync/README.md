@@ -85,3 +85,20 @@ python3 site/build.py && python3 site/make_deploy_js.py
 `deploy.js` uploads the Worker with its D1 and Access-AUD bindings and keeps preview URLs off.
 Local preview: `cd site && npx wrangler dev --local --var ALLOW_LOCAL:1` (local D1; load it with
 `npx wrangler d1 execute x-bookmarks --local --file <sql>`).
+
+## Recover from Cloudflare
+
+If the box was wiped, `sync/restore.py` rebuilds `bookmarks.json` from D1, read-only:
+
+```
+python3 sync/restore.py fetch [--via auto|wrangler|connector]   # wrangler: reads D1 and builds directly
+python3 sync/restore.py build --dump <result files...>          # connector: turn read_NN.js results into the file
+python3 sync/restore.py compare                                 # bookmarks.json vs bookmarks.restored.json
+python3 sync/restore.py tagging                                 # recreate author_priors.json + manual_tags.json
+```
+
+Output goes to `bookmarks.restored.json`; it replaces `bookmarks.json` only with
+`--out bookmarks.json --force`. With the connector, run `read_00.js` first, give its
+result file to `build`, which writes the remaining `read_NN.js` parts, then pass all
+result files to `build`. Full steps and what can't be recovered are in
+[docs/OPERATIONS.md](../docs/OPERATIONS.md#recover-from-cloudflare).

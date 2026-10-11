@@ -1,5 +1,6 @@
 # Bookmark data and personal content (never commit)
 bookmarks*.json
+bookmarks*.json.bak
 quoted.json
 raw/
 sync/out/

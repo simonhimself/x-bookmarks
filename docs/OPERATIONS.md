@@ -42,13 +42,16 @@ next to the code. These files are gitignored and never committed:
 | `bookmarks.json` | Local mirror of D1 and the source of "known ids" for the sync |
 | `quoted.json` | Quoted and replied-to posts from the initial export |
 | `raw/` | Raw X API pages from the initial export |
-| `sync/inbox/`, `sync/out/` | Pages fetched by each sync run, and the SQL/connector batches it applied |
+| `sync/inbox/`, `sync/out/` | Pages fetched by each sync run, the SQL/connector batches it applied, and restore read scripts |
+| `bookmarks.restored.json`, `bookmarks.before-restore-*.json` | Output of `sync/restore.py`, and the file it replaced when run with `--force` |
 | `tagging/manual_tags.json` | Manual and visual-review tag overrides, keyed by post ID |
 | `tagging/author_priors.json` | Author priors learned on full tagging runs |
 
 The working copy with data, which the daily sync uses, is `/workspace/x-bookmarks`
-on the Grok Bot box. This repository is a code-only copy of it. Without
-`manual_tags.json` and `author_priors.json`, the tagger still runs with rules only.
+on the Grok Bot box: a checkout of this repository with the data files ignored.
+Without `manual_tags.json` and `author_priors.json`, the tagger still runs with
+rules only. If the box is wiped, rebuild the data from D1 (see
+[Recover from Cloudflare](#recover-from-cloudflare)).
 
 ## Daily sync
 
@@ -122,3 +125,108 @@ workers.dev route on and turns preview URLs off.
 - **"Forbidden" after signing in:** the Worker rejected the Access token. Check that
   the Access application's AUD matches `ACCESS_AUD` and that the signed-in email is
   in `ALLOWED_EMAILS`.
+
+## Recover from Cloudflare
+
+D1 is the durable copy of the data. If the box is wiped, `sync/restore.py`
+rebuilds `bookmarks.json` from it. It only ever sends one fixed `SELECT` to D1,
+reads every row in pages of 500 (newest first, by `seq`), and never writes,
+deploys or bumps `data_version`.
+
+### Steps on a fresh machine
+
+1. Clone the repository where the sync expects it:
+
+   ```bash
+   git clone https://github.com/simonhimself/x-bookmarks.git /workspace/x-bookmarks
+   cd /workspace/x-bookmarks
+   ```
+
+2. Read D1. `fetch` picks Wrangler when `npx wrangler whoami` is logged in, and
+   the Cloudflare connector otherwise (force one with `--via wrangler` or
+   `--via connector`).
+
+   - **Wrangler:** `python3 sync/restore.py fetch` reads every row with
+     `wrangler d1 execute x-bookmarks --remote --json` and writes
+     `bookmarks.restored.json` in one go. Continue with step 4.
+   - **Connector:** `python3 sync/restore.py fetch --via connector` writes
+     `sync/out/restore-<ts>/read_00.js`. Run it with the connector, saving the
+     result to a file:
+
+     ```
+     CallDynamicTool namespace=user-Cloudflare toolName=execute write_to_file=true
+       arguments={"code": "$file:/workspace/x-bookmarks/sync/out/restore-<ts>/read_00.js"}
+     ```
+
+3. Connector only: the connector returns at most about 24,000 characters per
+   call, so each script reads the whole table, compresses it and returns one
+   numbered slice. Pass the first result file to
+   `python3 sync/restore.py build --dump <result file>`. It writes the
+   remaining `read_01.js` … `read_NN.js` (about 18 for 2,300 bookmarks) and exits
+   with code 10. Run them all the same way, then pass every result file:
+
+   ```bash
+   python3 sync/restore.py build --dump <file 00> <file 01> … <file NN>
+   ```
+
+   Each slice carries a SHA-256 of the whole dump. If a sync ran between two
+   calls, `build` stops and asks you to read all parts again instead of mixing
+   two snapshots. It also checks that the row count matches `COUNT(*)`.
+
+4. Check the output. `build` writes `bookmarks.restored.json` and, when a
+   `bookmarks.json` exists, prints a comparison: counts, ids on only one side and
+   every differing field. `python3 sync/restore.py compare` repeats it.
+
+5. Put it in place. On a wiped machine there is no `bookmarks.json` yet:
+   `mv bookmarks.restored.json bookmarks.json`. To replace an existing file, run
+   `build` again with `--out bookmarks.json --force`; the old file is moved to
+   `bookmarks.before-restore-<ts>.json` first. Without `--force` it refuses.
+
+6. Recreate the tagging files: `python3 sync/restore.py tagging`. It writes
+   `tagging/author_priors.json` and `tagging/manual_tags.json` only if they're
+   missing (`--dry-run` shows the counts, `--force` replaces them).
+
+The daily sync then works unchanged: it only needs each post's id, `seq`, tags
+and the fields `sync.py push` writes back, and those all come back exactly.
+
+### What comes back, and what doesn't
+
+D1 stores the 16 columns in [`site/schema.sql`](../site/schema.sql), not the
+full `bookmarks.json` record. Tested against the live database on 2026-10-11
+(2,314 rows): the id sets matched, and for every post the restored record turns
+back into exactly the D1 row (`to_row` in `sync/lib.py`), so a later `push` of a
+restored post changes nothing.
+
+Exact: `id`, `url`, `created_at`, `author_username`, `author_name`,
+`author_profile_image_url`, `external_links`, media type and image URL,
+`lang`, `metrics.like_count`, `tags`, `primary_tag`, `seq`, `bookmark_rank`,
+`folders` (always empty), `referenced_tweets` (from the quoted and replied
+posts), and the quoted or replied post's id, URL, author, date, media and
+availability.
+
+Not stored in D1, so lost or approximated:
+
+| Field | After a restore |
+| --- | --- |
+| `text` | The cleaned text D1 shows: `t.co` links expanded, links to the quoted or replied post removed. The raw API text is lost (differed for about 1,630 posts). |
+| `text_expanded` | Same as `text`; differs only where a link to the quoted or replied post was removed (about 440 posts). |
+| `author_id` | `null` |
+| `metrics` | Only `like_count`; bookmark, impression, quote, reply and repost counts are lost. |
+| `media[].media_key` | Lost; `type`, `url` and `preview_image_url` are exact. |
+| `links` | External links plus the quoted or replied post's URL; other X links are lost. |
+| `hashtags`, `mentions` | Re-extracted from the text, so close but not identical (1 and 18 posts differed). |
+| `tag_source` | `manual` for ids in `manual_tags.json`, `unclear` for posts tagged only "Other", `rules` otherwise. |
+| Quoted and replied posts | `text` is the cleaned text; `links` is empty; the `reason` for an unavailable post is lost. |
+
+None of these are used by the sync, the tagger's stored tags or the site.
+
+`tagging/author_priors.json` is recovered exactly: it's learned from the tags,
+which D1 keeps. `tagging/manual_tags.json` is not in D1 as such: D1 keeps the
+tags it produced but not which posts were fixed by hand. `restore.py tagging`
+writes an equivalent file that pins every post whose stored tags differ from what
+the rules alone give (538 posts in the test; the original had 539, 77 of which
+the rules reproduce anyway). Re-tagging with it reproduces every tag in D1.
+
+`quoted.json`, `raw/`, `tagging/visual_review/`, `tagging/manual_by_rank_*.txt`
+and old `sync/out/` batches are not recoverable. Only the initial-export helpers
+used them; the sync, tagger and site don't need them.
