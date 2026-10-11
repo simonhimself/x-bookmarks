@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="robots" content="noindex, nofollow">
+<title>Bookmarks</title>
+<style>
+:root{--bg:#f6f7f9;--panel:#fff;--card:#fff;--text:#0f1419;--muted:#5b6670;--line:#e3e6ea;--accent:#1d6fe0;--chip:#eef1f4;--chip-on:#0f1419;--chip-on-text:#fff;--quote:#f7f8fa;--shadow:0 1px 2px rgba(0,0,0,.05),0 2px 8px rgba(0,0,0,.04)}
+@media (prefers-color-scheme:dark){:root{--bg:#0d1014;--panel:#14181d;--card:#171c22;--text:#e7e9ea;--muted:#8b98a5;--line:#262d35;--accent:#4c9bff;--chip:#20262e;--chip-on:#e7e9ea;--chip-on-text:#0d1014;--quote:#11161b;--shadow:none}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+button,input,select{font:inherit;color:inherit}
+header{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.bar{display:flex;gap:10px;align-items:center;padding:10px 16px;max-width:1500px;margin:0 auto}
+.brand{font-weight:700;font-size:17px;white-space:nowrap}
+.search{flex:1;min-width:0;position:relative}
+.search input{width:100%;padding:9px 12px 9px 34px;border-radius:10px;border:1px solid var(--line);background:var(--panel);outline:none}
+.search input:focus{border-color:var(--accent)}
+.search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);opacity:.5}
+select{padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--panel)}
+.fbtn{display:none;padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel);cursor:pointer;white-space:nowrap}
+.layout{display:grid;grid-template-columns:300px minmax(0,1fr);gap:20px;max-width:1500px;margin:0 auto;padding:16px}
+.layout>main{min-width:0}
+aside{position:sticky;top:64px;align-self:start;max-height:calc(100vh - 80px);overflow:auto;padding-right:4px;scrollbar-width:thin}
+.sec{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:12px}
+.sec h3{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+.sec h3 button{border:0;background:none;color:var(--accent);cursor:pointer;font-size:12px;text-transform:none;letter-spacing:0;padding:0}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid transparent;background:var(--chip);border-radius:999px;padding:4px 10px;font-size:13px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.chip .dot{width:8px;height:8px;border-radius:50%}
+.chip .c{color:var(--muted);font-size:12px}
+.chip.on{background:var(--chip-on);color:var(--chip-on-text)}.chip.on .c{color:inherit;opacity:.7}
+.chip.zero{opacity:.45}
+.toggles label{display:flex;gap:8px;align-items:center;padding:3px 0;cursor:pointer;font-size:14px}
+.hist{display:flex;align-items:flex-end;gap:2px;height:70px;margin-top:4px}
+.hist .b{flex:1;background:var(--accent);opacity:.35;border-radius:2px 2px 0 0;cursor:pointer;min-height:1px}
+.hist .b:hover{opacity:.7}.hist .b.on{opacity:1}
+.years{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.range{font-size:12px;color:var(--muted);margin-top:6px;min-height:16px}
+.authors input{width:100%;padding:7px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);margin-bottom:8px;outline:none}
+.alist{max-height:260px;overflow:auto}
+.arow{display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:8px;cursor:pointer;font-size:14px}
+.arow:hover{background:var(--chip)}.arow.on{background:var(--chip-on);color:var(--chip-on-text)}
+.arow img{width:22px;height:22px;border-radius:50%;flex:none;background:var(--chip)}
+.arow .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.arow .c{color:var(--muted);font-size:12px}.arow.on .c{color:inherit}
+.status{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 0 12px;color:var(--muted);font-size:14px;flex-wrap:wrap}
+.status button{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:4px 10px;cursor:pointer}
+.active{display:flex;flex-wrap:wrap;gap:6px}
+.grid{columns:3 340px;column-gap:14px}
+.card{break-inside:avoid;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:0 0 14px;box-shadow:var(--shadow);display:inline-block;width:100%}
+.hd{display:flex;gap:10px;align-items:center}
+.hd img.av{width:36px;height:36px;border-radius:50%;flex:none;background:var(--chip)}
+.who{flex:1;min-width:0;line-height:1.2}
+.who b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.who span{color:var(--muted);font-size:13px}
+.xl{color:var(--muted);flex:none;padding:4px}
+.tx{margin:8px 0 0;white-space:pre-wrap;word-wrap:break-word;overflow-wrap:anywhere}
+.tx.clamp{display:-webkit-box;-webkit-line-clamp:9;-webkit-box-orient:vertical;overflow:hidden}
+.more{border:0;background:none;color:var(--accent);padding:2px 0;cursor:pointer;font-size:13px}
+.media{margin-top:10px;display:grid;gap:4px;border-radius:12px;overflow:hidden;position:relative}
+.media.n2,.media.n3,.media.n4{grid-template-columns:1fr 1fr}
+.media a{display:block;position:relative;background:var(--chip)}
+.media img{width:100%;height:100%;max-height:420px;object-fit:cover;display:block}
+.media.n2 img,.media.n3 img,.media.n4 img{aspect-ratio:1/1}
+.badge{position:absolute;left:8px;bottom:8px;background:rgba(0,0,0,.7);color:#fff;font-size:11px;font-weight:600;padding:2px 7px;border-radius:6px}
+.q{margin-top:10px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--quote)}
+.q .hd img.av{width:20px;height:20px}
+.q .who b{display:inline;font-size:14px}.q .who span{font-size:12px}
+.q .tx{font-size:14px;margin-top:6px}
+.q .media img{max-height:260px}
+.q.na{color:var(--muted);font-size:13px}
+.rp{color:var(--muted);font-size:13px;margin-top:6px}
+.links{margin-top:8px;display:flex;flex-direction:column;gap:4px}
+.links a{display:flex;align-items:center;gap:6px;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:5px 8px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:var(--text)}
+.links a span{overflow:hidden;text-overflow:ellipsis}
+.links a b{color:var(--muted);font-weight:500;flex:none}
+.ft{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:12px;color:var(--muted)}
+.tag{border-radius:999px;padding:2px 8px;font-size:12px;cursor:pointer;border:1px solid var(--line);background:none;color:var(--text);display:inline-flex;align-items:center;gap:5px}
+.tag .dot{width:7px;height:7px;border-radius:50%}
+.ft .sp{flex:1}
+mark{background:color-mix(in srgb,#ffd400 55%,transparent);color:inherit;border-radius:3px}
+.empty{padding:60px 20px;text-align:center;color:var(--muted)}
+#sentinel{height:40px}
+.backdrop{display:none}
+@media (max-width:900px){
+  .layout{grid-template-columns:minmax(0,1fr);padding:12px}
+  .fbtn{display:inline-block}
+  .brand{display:none}
+  aside{position:fixed;top:0;bottom:0;left:0;width:min(88vw,360px);max-height:none;z-index:40;background:var(--bg);padding:14px;transform:translateX(-105%);transition:transform .2s;box-shadow:0 0 30px rgba(0,0,0,.3)}
+  aside.open{transform:none}
+  .backdrop.open{display:block;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:30}
+  .grid{columns:1}
+  #sortSel{max-width:118px;font-size:14px}
+}
+</style>
+</head>
+<body>
+<header><div class="bar">
+  <div class="brand">𝕏 Bookmarks</div>
+  <button class="fbtn" id="fbtn">Filters</button>
+  <div class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+  <input id="q" type="search" placeholder="Search text, authors, link domains…" autocomplete="off"></div>
+  <select id="sortSel" aria-label="Sort">
+    <option value="bm">Newest bookmarked</option><option value="bm_old">Oldest bookmarked</option>
+    <option value="new">Newest posts</option><option value="old">Oldest posts</option></select>
+</div></header>
+<div class="backdrop" id="backdrop"></div>
+<div class="layout">
+<aside id="side">
+  <div class="sec"><h3>Topics <button id="clrTags">clear</button></h3><div class="chips" id="tags"></div></div>
+  <div class="sec"><h3>Posted <button id="clrDate">clear</button></h3><div class="hist" id="hist"></div><div class="range" id="range"></div><div class="years" id="years"></div></div>
+  <div class="sec toggles"><h3>Has</h3>
+    <label><input type="checkbox" id="hasMedia"> Photo or video</label>
+    <label><input type="checkbox" id="hasLink"> External link</label>
+    <label><input type="checkbox" id="hasQuote"> Quoted post</label></div>
+  <div class="sec authors"><h3>Authors <button id="clrAuth">clear</button></h3><input id="aq" type="search" placeholder="Find author…"><div class="alist" id="alist"></div></div>
+</aside>
+<main>
+  <div class="status"><div id="count">Loading…</div><div class="active" id="active"></div></div>
+  <div class="grid" id="grid"></div>
+  <div id="sentinel"></div>
+</main>
+</div>
+<script>
+(()=>{
+const COLORS={"ai-coding":"#7c3aed","ai-creative":"#db2777","ai-news":"#2563eb","testing":"#0891b2","devtools":"#475569","product":"#ea580c","investing":"#16a34a","tesla":"#dc2626","home":"#b45309","property":"#a16207","travel":"#0d9488","productivity":"#9333ea","movies":"#e11d48","health":"#059669","lifestyle":"#d97706","curiosities":"#4f46e5","humor":"#f59e0b","other":"#94a3b8"};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+let ITEMS=[],TAX=[],LABEL={},N=0;
+const st={q:"",tags:new Set(),authors:new Set(),from:null,to:null,media:false,link:false,quote:false,sort:"bm"};
+let filtered=[],shown=0;const PAGE=40;
+
+function domain(u){try{return new URL(u).hostname.replace(/^www\./,"")}catch{return ""}}
+function img(u,size){if(!u)return"";if(u.includes("pbs.twimg.com/profile_images"))return u;return u.includes("?")?u:u+"?name="+(size||"small")}
+function fmtDate(d){const x=new Date(d);return x.getDate()+" "+MONTHS[x.getMonth()]+" "+x.getFullYear()}
+function ym(d){return d?d.slice(0,7):""}
+
+function prep(){
+  N=ITEMS.length;
+  ITEMS.forEach((o,ix)=>{
+    o.rank=ix+1; // ITEMS arrive ordered by seq desc
+    o.ym=ym(o.d);
+    o.dom=o.l.map(domain).filter(Boolean);
+    const qt=o.q&&o.q.available?(o.q.text||"")+" "+(o.q.author_username||"")+" "+(o.q.author_name||""):"";
+    o.hay=(o.t+" "+qt+" @"+o.u+" "+o.n+" "+o.dom.join(" ")+" "+o.l.join(" ")+" "+o.g.map(t=>LABEL[t]||t).join(" ")).toLowerCase();
+    o.hasMedia=o.m.length>0||!!(o.q&&o.q.media&&o.q.media.length);
+  });
+}
+function terms(){return st.q.toLowerCase().split(/\s+/).filter(Boolean)}
+function pass(o,skip){
+  if(skip!=="tags"&&st.tags.size&&!o.g.some(t=>st.tags.has(t)))return false;
+  if(skip!=="authors"&&st.authors.size&&!st.authors.has(o.u))return false;
+  if(skip!=="date"){if(st.from&&o.ym<st.from)return false;if(st.to&&o.ym>st.to)return false}
+  if(st.media&&!o.hasMedia)return false;
+  if(st.link&&!o.l.length)return false;
+  if(st.quote&&!o.q)return false;
+  const T=terms();for(const t of T){if(!o.hay.includes(t))return false}
+  return true;
+}
+function apply(){
+  filtered=ITEMS.filter(o=>pass(o));
+  const s=st.sort;
+  if(s==="bm_old")filtered.reverse();
+  else if(s==="new")filtered.sort((a,b)=>b.d<a.d?-1:1);
+  else if(s==="old")filtered.sort((a,b)=>a.d<b.d?-1:1);
+  shown=0;$("#grid").innerHTML="";renderMore();
+  $("#count").textContent=filtered.length.toLocaleString()+" of "+N.toLocaleString()+" bookmarks";
+  renderFacets();renderActive();saveHash();
+}
+function renderFacets(){
+  // tags
+  const tc={};ITEMS.forEach(o=>{if(pass(o,"tags"))o.g.forEach(t=>tc[t]=(tc[t]||0)+1)});
+  $("#tags").innerHTML=TAX.map(t=>`<button class="chip ${st.tags.has(t.id)?"on":""} ${tc[t.id]?"":"zero"}" data-tag="${t.id}"><span class="dot" style="background:${COLORS[t.id]||"#888"}"></span>${esc(t.label)}<span class="c">${tc[t.id]||0}</span></button>`).join("");
+  // histogram by month across full range
+  const mc={};ITEMS.forEach(o=>{if(pass(o,"date"))mc[o.ym]=(mc[o.ym]||0)+1});
+  const all=[...new Set(ITEMS.map(o=>o.ym))].filter(Boolean).sort();
+  const months=[];if(all.length){let [y,m]=all[0].split("-").map(Number);const [ey,em]=all[all.length-1].split("-").map(Number);while(y<ey||(y===ey&&m<=em)){months.push(y+"-"+String(m).padStart(2,"0"));m++;if(m>12){m=1;y++}}}
+  const max=Math.max(1,...months.map(k=>mc[k]||0));
+  $("#hist").innerHTML=months.map(k=>{const on=(st.from||st.to)&&(!st.from||k>=st.from)&&(!st.to||k<=st.to);const[y,m]=k.split("-");return `<div class="b ${on?"on":""}" data-ym="${k}" title="${MONTHS[+m-1]} ${y}: ${mc[k]||0}" style="height:${Math.max(2,Math.round(100*(mc[k]||0)/max))}%"></div>`}).join("");
+  const years=[...new Set(all.map(k=>k.slice(0,4)))];
+  const yc={};ITEMS.forEach(o=>{if(pass(o,"date")&&o.ym)yc[o.ym.slice(0,4)]=(yc[o.ym.slice(0,4)]||0)+1});
+  $("#years").innerHTML=years.map(y=>`<button class="chip ${st.from===y+"-01"&&st.to===y+"-12"?"on":""}" data-year="${y}">${y}<span class="c">${yc[y]||0}</span></button>`).join("");
+  $("#range").textContent=st.from||st.to?("Showing "+lbl(st.from||months[0])+(st.from===st.to?"":" – "+lbl(st.to||months[months.length-1]))+"  ·  click a bar to pick a month, a second click extends the range"):"Click a bar for a month, or a year below";
+  renderAuthors();
+}
+function lbl(k){const[y,m]=k.split("-");return MONTHS[+m-1]+" "+y}
+function renderAuthors(){
+  const ac={},info={};ITEMS.forEach(o=>{if(pass(o,"authors")){ac[o.u]=(ac[o.u]||0)+1;info[o.u]=info[o.u]||o}});
+  const f=$("#aq").value.toLowerCase().trim();
+  let list=Object.keys(ac).filter(u=>!f||u.toLowerCase().includes(f)||(info[u].n||"").toLowerCase().includes(f));
+  list.sort((a,b)=>(st.authors.has(b)-st.authors.has(a))||ac[b]-ac[a]||a.localeCompare(b));
+  st.authors.forEach(u=>{if(!ac[u])list.unshift(u)});
+  $("#alist").innerHTML=list.slice(0,150).map(u=>`<div class="arow ${st.authors.has(u)?"on":""}" data-au="${esc(u)}"><img loading="lazy" src="${esc(info[u]?info[u].a:"")}" alt=""><span class="nm">${esc(info[u]?info[u].n:u)} <span class="c">@${esc(u)}</span></span><span class="c">${ac[u]||0}</span></div>`).join("")+(list.length>150?`<div class="range">${list.length-150} more – type to search</div>`:"");
+}
+function renderActive(){
+  const a=[];
+  st.tags.forEach(t=>a.push(`<button class="chip on" data-rm-tag="${t}">${esc(LABEL[t]||t)} ✕</button>`));
+  st.authors.forEach(u=>a.push(`<button class="chip on" data-rm-au="${esc(u)}">@${esc(u)} ✕</button>`));
+  if(st.from||st.to)a.push(`<button class="chip on" data-rm-date="1">${esc(st.from?lbl(st.from):"…")}${st.from===st.to?"":" – "+esc(st.to?lbl(st.to):"…")} ✕</button>`);
+  if(a.length||st.q||st.media||st.link||st.quote)a.push(`<button id="clrAll">Clear all</button>`);
+  $("#active").innerHTML=a.join("");
+}
+function hl(html){const T=terms().filter(t=>t.length>1);if(!T.length)return html;const re=new RegExp("("+T.map(t=>t.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("|")+")","gi");return html.split(/(<[^>]+>)/).map(p=>p.startsWith("<")?p:p.replace(re,"<mark>$1</mark>")).join("")}
+const unent=s=>String(s||"").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&amp;/g,"&");
+function linkify(text){
+  const parts=unent(text).split(/(https?:\/\/[^\s<]+)/g);
+  return parts.map((p,i)=>{if(i%2){let u=p.replace(/[),.;!?]+$/,"");const rest=p.slice(u.length);const d=u.replace(/^https?:\/\/(www\.)?/,"");return `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(d.length>48?d.slice(0,46)+"…":d)}</a>${esc(rest)}`}return hl(esc(p)).replace(/(^|\s)@(\w{1,15})/g,'$1<a href="https://x.com/$2" target="_blank" rel="noopener noreferrer">@$2</a>')}).join("");
+}
+function mediaHtml(m,url,small){
+  if(!m||!m.length)return"";const n=Math.min(m.length,4);
+  return `<div class="media n${n}">`+m.slice(0,4).map((x,i)=>`<a href="${esc(url)}" target="_blank" rel="noopener noreferrer"><img loading="lazy" decoding="async" src="${esc(img(x.src,small?"small":(n>1?"small":"medium")))}" alt="">${x.type==="video"?'<span class="badge">▶ Video</span>':x.type==="animated_gif"?'<span class="badge">GIF</span>':""}${i===3&&m.length>4?`<span class="badge">+${m.length-4}</span>`:""}</a>`).join("")+`</div>`;
+}
+function quoteHtml(q){
+  if(!q)return"";
+  if(!q.available)return `<div class="q na">Quoted post unavailable · <a href="${esc(q.url)}" target="_blank" rel="noopener noreferrer">open on X</a></div>`;
+  return `<div class="q"><div class="hd">${q.author_img?`<img class="av" loading="lazy" src="${esc(q.author_img)}" alt="">`:""}<div class="who"><b>${esc(q.author_name||"")}</b> <span>@${esc(q.author_username||"")} · ${q.created_at?fmtDate(q.created_at):""}</span></div><a class="xl" href="${esc(q.url)}" target="_blank" rel="noopener noreferrer" title="Open quoted post">↗</a></div>${q.text?`<div class="tx clamp">${linkify(q.text)}</div>`:""}${mediaHtml(q.media,q.url,true)}</div>`;
+}
+function card(o){
+  const links=o.l.filter(u=>!/^https?:\/\/(www\.)?(x|twitter)\.com\//.test(u));
+  const tags=o.g.map(t=>`<button class="tag" data-tag="${t}"><span class="dot" style="background:${COLORS[t]||"#888"}"></span>${esc(LABEL[t]||t)}</button>`).join("");
+  const long=(o.t||"").length>480||(o.t||"").split("\n").length>9;
+  return `<article class="card"><div class="hd"><img class="av" loading="lazy" src="${esc(o.a)}" alt=""><div class="who"><b>${esc(o.n)}</b><span><a href="https://x.com/${esc(o.u)}" target="_blank" rel="noopener noreferrer">@${esc(o.u)}</a> · ${fmtDate(o.d)}</span></div><a class="xl" href="https://x.com/${esc(o.u)}/status/${o.i}" target="_blank" rel="noopener noreferrer" title="Open on X"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a></div>
+${o.r?`<div class="rp">↩ Replying to ${o.r.available?`<a href="${esc(o.r.url)}" target="_blank" rel="noopener noreferrer">@${esc(o.r.author_username)}</a>`:"a post"}</div>`:""}
+${o.t?`<div class="tx ${long?"clamp":""}">${linkify(o.t)}</div>${long?'<button class="more">Show more</button>':""}`:""}
+${mediaHtml(o.m,`https://x.com/${o.u}/status/${o.i}`)}
+${quoteHtml(o.q)}
+${links.length?`<div class="links">${links.slice(0,3).map(u=>`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer"><b>${esc(domain(u))}</b><span>${esc(u.replace(/^https?:\/\/(www\.)?[^/]+/,"")||"/")}</span></a>`).join("")}</div>`:""}
+<div class="ft">${tags}<span class="sp"></span><span title="Bookmark #${o.rank} (1 = most recent)">#${o.rank}</span></div></article>`;
+}
+function renderMore(){
+  const g=$("#grid");
+  if(!filtered.length){g.innerHTML='<div class="empty">No bookmarks match these filters.</div>';return}
+  const next=filtered.slice(shown,shown+PAGE);shown+=next.length;
+  g.insertAdjacentHTML("beforeend",next.map(card).join(""));
+}
+new IntersectionObserver(es=>{if(es.some(e=>e.isIntersecting)&&shown<filtered.length)renderMore()},{rootMargin:"1200px"}).observe($("#sentinel"));
+
+// events
+let qt;$("#q").addEventListener("input",e=>{clearTimeout(qt);qt=setTimeout(()=>{st.q=e.target.value;apply()},120)});
+$("#sortSel").onchange=e=>{st.sort=e.target.value;apply()};
+$("#aq").addEventListener("input",renderAuthors);
+["hasMedia","hasLink","hasQuote"].forEach((id,i)=>$("#"+id).onchange=e=>{st[["media","link","quote"][i]]=e.target.checked;apply()});
+$("#clrTags").onclick=()=>{st.tags.clear();apply()};
+$("#clrAuth").onclick=()=>{st.authors.clear();$("#aq").value="";apply()};
+$("#clrDate").onclick=()=>{st.from=st.to=null;apply()};
+let lastClick=null;
+document.addEventListener("click",e=>{
+  const t=e.target.closest("[data-tag]");if(t){const k=t.dataset.tag;st.tags.has(k)?st.tags.delete(k):st.tags.add(k);apply();return}
+  const a=e.target.closest("[data-au]");if(a){const k=a.dataset.au;st.authors.has(k)?st.authors.delete(k):st.authors.add(k);apply();return}
+  const b=e.target.closest("[data-ym]");if(b){const k=b.dataset.ym;if(st.from&&st.from===st.to&&lastClick&&lastClick!==k){st.from=k<lastClick?k:lastClick;st.to=k<lastClick?lastClick:k;lastClick=null}else if(st.from===k&&st.to===k){st.from=st.to=null;lastClick=null}else{st.from=st.to=k;lastClick=k}apply();return}
+  const y=e.target.closest("[data-year]");if(y){const v=y.dataset.year;if(st.from===v+"-01"&&st.to===v+"-12"){st.from=st.to=null}else{st.from=v+"-01";st.to=v+"-12"}apply();return}
+  if(e.target.closest("[data-rm-tag]")){st.tags.delete(e.target.closest("[data-rm-tag]").dataset.rmTag);apply();return}
+  if(e.target.closest("[data-rm-au]")){st.authors.delete(e.target.closest("[data-rm-au]").dataset.rmAu);apply();return}
+  if(e.target.closest("[data-rm-date]")){st.from=st.to=null;apply();return}
+  if(e.target.id==="clrAll"){st.tags.clear();st.authors.clear();st.from=st.to=null;st.q="";$("#q").value="";st.media=st.link=st.quote=false;["hasMedia","hasLink","hasQuote"].forEach(i=>$("#"+i).checked=false);apply();return}
+  if(e.target.classList.contains("more")){const tx=e.target.previousElementSibling;tx.classList.toggle("clamp");e.target.textContent=tx.classList.contains("clamp")?"Show more":"Show less";return}
+});
+const side=$("#side"),bd=$("#backdrop");
+$("#fbtn").onclick=()=>{side.classList.add("open");bd.classList.add("open")};
+bd.onclick=()=>{side.classList.remove("open");bd.classList.remove("open")};
+
+function saveHash(){const p=new URLSearchParams();if(st.q)p.set("q",st.q);if(st.tags.size)p.set("tags",[...st.tags].join(","));if(st.authors.size)p.set("au",[...st.authors].join(","));if(st.from)p.set("from",st.from);if(st.to)p.set("to",st.to);if(st.media)p.set("media","1");if(st.link)p.set("link","1");if(st.quote)p.set("quote","1");if(st.sort!=="bm")p.set("sort",st.sort);const h=p.toString();history.replaceState(null,"",h?"#"+h:location.pathname)}
+function loadHash(){const p=new URLSearchParams(location.hash.slice(1));st.q=p.get("q")||"";$("#q").value=st.q;(p.get("tags")||"").split(",").filter(Boolean).forEach(t=>st.tags.add(t));(p.get("au")||"").split(",").filter(Boolean).forEach(t=>st.authors.add(t));st.from=p.get("from");st.to=p.get("to");st.media=p.get("media")==="1";st.link=p.get("link")==="1";st.quote=p.get("quote")==="1";st.sort=p.get("sort")||"bm";$("#sortSel").value=st.sort;$("#hasMedia").checked=st.media;$("#hasLink").checked=st.link;$("#hasQuote").checked=st.quote}
+
+fetch("/api/bookmarks",{credentials:"same-origin"}).then(r=>{if(!r.ok)throw new Error(r.status);return r.json()}).then(j=>{
+  ITEMS=j.items;TAX=j.taxonomy;TAX.forEach(t=>LABEL[t.id]=t.label);prep();loadHash();apply();
+}).catch(e=>{$("#count").textContent="Couldn't load bookmarks ("+e.message+"). Try reloading.";});
+})();
+</script>
+</body>
+</html>

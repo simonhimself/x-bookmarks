@@ -1,0 +1,14 @@
+name = "x-bookmarks"
+main = "dist/worker.js"
+compatibility_date = "2026-09-01"
+workers_dev = true
+preview_urls = false
+account_id = "2423947c3898625c52d1d37070dffd03"
+
+[vars]
+ACCESS_AUD = "b0c59ac7f696d3899b34faf887dac46f4b4087950da8b516fa7fa45df5460b6a"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "x-bookmarks"
+database_id = "14bf4a21-7cb1-403f-b558-f709ed307260"

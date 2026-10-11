@@ -1,0 +1,27 @@
+# Bookmark data and personal content (never commit)
+bookmarks*.json
+quoted.json
+raw/
+sync/out/
+sync/inbox/
+tagging/manual_tags.json
+tagging/author_priors.json
+tagging/manual_by_rank_*.txt
+tagging/visual_review/
+screenshot*.png
+*.sqlite
+*.sqlite-*
+
+# Build output and tooling state
+site/dist/
+node_modules/
+.wrangler/
+
+# Secrets
+.dev.vars
+.env
+.env.*
+*token*
+*.pem
+*.key
+__pycache__/

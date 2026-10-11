@@ -1,0 +1,74 @@
+[
+ {
+  "id": "ai-coding",
+  "label": "AI coding agents & skills"
+ },
+ {
+  "id": "ai-creative",
+  "label": "AI design, UI, video & creative"
+ },
+ {
+  "id": "ai-news",
+  "label": "AI models, labs & news"
+ },
+ {
+  "id": "testing",
+  "label": "Testing with agents"
+ },
+ {
+  "id": "devtools",
+  "label": "Dev tools & infra"
+ },
+ {
+  "id": "product",
+  "label": "Startups, product & growth"
+ },
+ {
+  "id": "investing",
+  "label": "Investing & markets"
+ },
+ {
+  "id": "tesla",
+  "label": "Tesla, SpaceX, EVs & energy"
+ },
+ {
+  "id": "home",
+  "label": "Home, interiors, garden & architecture"
+ },
+ {
+  "id": "property",
+  "label": "Property & real estate"
+ },
+ {
+  "id": "travel",
+  "label": "Travel & places"
+ },
+ {
+  "id": "productivity",
+  "label": "Productivity & mindset"
+ },
+ {
+  "id": "movies",
+  "label": "Movies & TV"
+ },
+ {
+  "id": "health",
+  "label": "Health & fitness"
+ },
+ {
+  "id": "lifestyle",
+  "label": "Food, gadgets & lifestyle"
+ },
+ {
+  "id": "curiosities",
+  "label": "Science, news & curiosities"
+ },
+ {
+  "id": "humor",
+  "label": "Humor & animals"
+ },
+ {
+  "id": "other",
+  "label": "Other"
+ }
+]
