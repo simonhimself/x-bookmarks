@@ -47,7 +47,7 @@ next to the code. These files are gitignored and never committed:
 | `tagging/manual_tags.json` | Manual and visual-review tag overrides, keyed by post ID |
 | `tagging/author_priors.json` | Author priors learned on full tagging runs |
 
-The working copy with data, which the daily sync uses, is `/workspace/x-bookmarks`
+The working copy with data, which the daily sync uses, is `/workspace/code/x-bookmarks`
 on the Grok Bot box: a checkout of this repository with the data files ignored.
 Without `manual_tags.json` and `author_priors.json`, the tagger still runs with
 rules only. If the box is wiped, rebuild the data from D1 (see
@@ -59,7 +59,7 @@ A Grok Bot routine, "Daily X bookmarks sync", is owned by the Cloudflare bot and
 runs every day at 07:31 Europe/Zurich (`31 7 * * *`). It checks the 10 newest
 bookmarks first and fetches further pages of 50 only when all of them are new,
 up to 10 pages per run. Quoted posts come from the free public X reader. The
-routine runs `sync/sync.py` in `/workspace/x-bookmarks` and applies the result to
+routine runs `sync/sync.py` in `/workspace/code/x-bookmarks` and applies the result to
 D1. Data changes need no redeploy: the Worker reads D1 on each request and caches
 by the `meta.data_version` row, which every sync bumps.
 
@@ -102,7 +102,7 @@ Without a logged-in Wrangler, use the Cloudflare connector:
 
 ```bash
 python3 site/build.py && python3 site/make_deploy_js.py
-# then: CallDynamicTool user-Cloudflare execute {"code": "$file:/workspace/x-bookmarks/site/dist/deploy.js"}
+# then: CallDynamicTool user-Cloudflare execute {"code": "$file:/workspace/code/x-bookmarks/site/dist/deploy.js"}
 ```
 
 `deploy.js` uploads the Worker with its D1 and `ACCESS_AUD` bindings, keeps the
@@ -138,8 +138,8 @@ deploys or bumps `data_version`.
 1. Clone the repository where the sync expects it:
 
    ```bash
-   git clone https://github.com/simonhimself/x-bookmarks.git /workspace/x-bookmarks
-   cd /workspace/x-bookmarks
+   git clone https://github.com/simonhimself/x-bookmarks.git /workspace/code/x-bookmarks
+   cd /workspace/code/x-bookmarks
    ```
 
 2. Read D1. `fetch` picks Wrangler when `npx wrangler whoami` is logged in, and
@@ -155,7 +155,7 @@ deploys or bumps `data_version`.
 
      ```
      CallDynamicTool namespace=user-Cloudflare toolName=execute write_to_file=true
-       arguments={"code": "$file:/workspace/x-bookmarks/sync/out/restore-<ts>/read_00.js"}
+       arguments={"code": "$file:/workspace/code/x-bookmarks/sync/out/restore-<ts>/read_00.js"}
      ```
 
 3. Connector only: the connector returns at most about 24,000 characters per

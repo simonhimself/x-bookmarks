@@ -24,7 +24,7 @@ authenticated. Otherwise (today's setup: wrangler isn't logged in on the box) it
 connector:
 
 ```
-CallDynamicTool namespace=user-Cloudflare toolName=execute arguments={"code": "$file:/workspace/x-bookmarks/sync/out/<ts>/apply_00.js"}
+CallDynamicTool namespace=user-Cloudflare toolName=execute arguments={"code": "$file:/workspace/code/x-bookmarks/sync/out/<ts>/apply_00.js"}
 ```
 
 Each call should return `success: true`. `sync/out/<ts>/upsert.sql` has the same SQL in plain form.
@@ -33,7 +33,7 @@ Each call should return `success: true`. `sync/out/<ts>/upsert.sql` has the same
 
 The routine does the X fetch (the only step that costs money) and then runs this script.
 
-1. Make a fresh folder: `DIR=/workspace/x-bookmarks/sync/inbox/$(date +%Y%m%d-%H%M)`.
+1. Make a fresh folder: `DIR=/workspace/code/x-bookmarks/sync/inbox/$(date +%Y%m%d-%H%M)`.
 2. Page through bookmarks **from the start**: call `user-X` `get_users_bookmarks` with
    - `id=17562615`, `max_results=50` (never 100: it ends early, see EXPORT_NOTES.md)
    - `post.fields=created_at,author_id,note_tweet,entities,attachments,public_metrics,lang,referenced_tweets`
@@ -80,7 +80,7 @@ keyed by post id; these win over the rules). Re-tag everything with
 
 ```
 python3 site/build.py && python3 site/make_deploy_js.py
-# then: CallDynamicTool user-Cloudflare execute {"code": "$file:/workspace/x-bookmarks/site/dist/deploy.js"}
+# then: CallDynamicTool user-Cloudflare execute {"code": "$file:/workspace/code/x-bookmarks/site/dist/deploy.js"}
 ```
 `deploy.js` uploads the Worker with its D1 and Access-AUD bindings and keeps preview URLs off.
 Local preview: `cd site && npx wrangler dev --local --var ALLOW_LOCAL:1` (local D1; load it with
