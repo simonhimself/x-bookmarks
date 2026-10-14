@@ -203,6 +203,15 @@ async function runSync(env, opts = {}) {
     await env.DB.prepare("UPDATE videos SET needs_details=1 WHERE live_state IN ('live','upcoming')").run();
   }
   if (s.phase === "done") return { done: true, day: today };
+  // One sync at a time (cron and "Sync now" can overlap). The lock expires after 10 minutes.
+  const lockUntil = Date.now() + 600e3;
+  const got = await env.DB.prepare("INSERT INTO meta(k,v) VALUES('yt_lock', ?1) ON CONFLICT(k) DO UPDATE SET v=excluded.v WHERE CAST(meta.v AS INTEGER) < ?2 RETURNING v").bind(String(lockUntil), Date.now()).first("v");
+  if (!got) return { skipped: "another sync is running" };
+  try { return await runSyncLocked(env, ctx, s, today); }
+  finally { await env.DB.prepare("DELETE FROM meta WHERE k='yt_lock' AND v=?1").bind(String(lockUntil)).run(); }
+}
+
+async function runSyncLocked(env, ctx, s, today) {
   const started = Date.now(); let changed = false, error = null;
   try {
     while (s.phase !== "done") {
@@ -326,7 +335,9 @@ async function apiYtStatus(env) {
 async function ytWrite(req, env, url, ctx) {
   if (!sameOrigin(req, url)) return jres({ error: "cross-origin or non-JSON request refused" }, 403);
   let body; try { body = await req.json(); } catch { return jres({ error: "invalid JSON" }, 400); }
-  if (url.pathname === "/api/yt/sync") { const r = await runSync(env); return jres(r); }
+  // Sync now: answer at once and run the batch in the background (a full batch takes ~30 s of wall time,
+  // mostly D1 round trips; phones drop the request). The page polls /api/yt/status.
+  if (url.pathname === "/api/yt/sync") { ctx.waitUntil(runSync(env, { budget: 25 }).catch(e => console.log("yt manual sync failed", String(e)))); return jres({ ok: true, started: true }, 202); }
   if (url.pathname === "/api/yt/disconnect") { await env.DB.prepare("DELETE FROM yt_oauth").run(); await kvSet(env, "yt_state", ""); return jres({ ok: true }); }
   const id = body && String(body.id || "");
   if (!/^[A-Za-z0-9_-]{11}$/.test(id)) return jres({ error: "invalid video id" }, 400);

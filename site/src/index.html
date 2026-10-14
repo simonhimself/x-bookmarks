@@ -386,9 +386,14 @@ async function ytStatus(){
   if(!s.connected){bar.innerHTML='<a class="btn pri" href="/oauth/youtube/start">Connect YouTube</a><span>Read-only access to your subscriptions, likes and playlists. <a href="/privacy" target="_blank">Privacy</a></span>';return}
   const lr=s.last_run,stt=s.state||{};
   const when=lr&&lr.at?new Date(lr.at).toLocaleString([], {dateStyle:"medium",timeStyle:"short"}):"never";
-  const phase=stt.phase==="done"?"up to date":stt.phase?"syncing ("+stt.phase+")":"waiting for first sync";
+  const phase=stt.phase==="done"?"up to date":stt.phase?"syncing ("+stt.phase+")":"waiting for first sync (runs every 10 min)";
   bar.innerHTML=`<span>▶ ${esc(s.account&&s.account.channel_title||"YouTube")} · ${s.channels||0} channels · ${s.videos||0} videos${s.pending?" · "+s.pending+" pending":""} · ${phase} · last run ${esc(when)}${s.last_error&&lr&&lr.error?` · <span style="color:#dc2626">error: ${esc(lr.error)}</span>`:""}</span><span style="flex:1"></span><button id="ytSync">Sync now</button><a href="/privacy" target="_blank">Privacy</a>`;
-  $("#ytSync").onclick=async ev=>{ev.target.disabled=true;ev.target.textContent="Syncing…";try{await post("/api/yt/sync","")}catch(e){toast("Sync failed: "+e.message)}DATA.yt=null;await loadSrc("yt");ytStatus()};
+  $("#ytSync").onclick=async ev=>{ev.target.disabled=true;ev.target.textContent="Syncing…";const before=lr&&lr.at;
+    try{await post("/api/yt/sync","")}catch(e){toast("Couldn't start the sync: "+e.message);ytStatus();return}
+    toast("Sync started. This takes up to a minute.");
+    for(let i=0;i<30;i++){await new Promise(r=>setTimeout(r,3000));let t;try{t=await fetch("/api/yt/status",{credentials:"same-origin"}).then(r=>r.json())}catch{continue}if(t.last_run&&t.last_run.at!==before)break}
+    DATA.yt=null;await loadSrc("yt");ytStatus()};
+  if(stt.phase&&stt.phase!=="done")setTimeout(()=>{if(st.src==="yt"&&!document.hidden)ytStatus()},60000);
 }
 
 function setSortLabels(){const o=$("#sortSel").options;const y=st.src==="yt";o[0].text=y?"Newest added":"Newest bookmarked";o[1].text=y?"Oldest added":"Oldest bookmarked";o[2].text=y?"Newest videos":"Newest posts";o[3].text=y?"Oldest videos":"Oldest posts";o[4].hidden=!y;if(!y&&st.sort==="star")st.sort="bm";$("#sortSel").value=st.sort}
