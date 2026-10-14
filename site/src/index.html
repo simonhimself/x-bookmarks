@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <meta name="robots" content="noindex, nofollow">
-<title>Bookmarks</title>
+<title>Library</title>
 <style>
 :root{--bg:#f6f7f9;--panel:#fff;--card:#fff;--text:#0f1419;--muted:#5b6670;--line:#e3e6ea;--accent:#1d6fe0;--chip:#eef1f4;--chip-on:#0f1419;--chip-on-text:#fff;--quote:#f7f8fa;--shadow:0 1px 2px rgba(0,0,0,.05),0 2px 8px rgba(0,0,0,.04)}
 @media (prefers-color-scheme:dark){:root{--bg:#0d1014;--panel:#14181d;--card:#171c22;--text:#e7e9ea;--muted:#8b98a5;--line:#262d35;--accent:#4c9bff;--chip:#20262e;--chip-on:#e7e9ea;--chip-on-text:#0d1014;--quote:#11161b;--shadow:none}}
@@ -100,31 +100,61 @@ mark{background:color-mix(in srgb,#ffd400 55%,transparent);color:inherit;border-
 .rm:hover{color:#dc2626;border-color:#dc2626}
 .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#111;color:#fff;border-radius:10px;padding:10px 14px;font-size:14px;display:flex;gap:12px;align-items:center;box-shadow:0 6px 24px rgba(0,0,0,.3);z-index:50}
 .toast[hidden]{display:none}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;flex:none;background:var(--panel)}
+.seg button{border:0;background:none;padding:7px 12px;cursor:pointer;font-size:14px;color:var(--muted)}
+.seg button.on{background:var(--chip-on);color:var(--chip-on-text)}
+.vc{padding:0;overflow:hidden}
+.vc .thumb{display:block;position:relative;aspect-ratio:16/9;background:var(--chip)}
+.vc .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.vc .dur{position:absolute;right:8px;bottom:8px;background:rgba(0,0,0,.8);color:#fff;font-size:12px;font-weight:600;padding:1px 6px;border-radius:5px}
+.vc .lvb{position:absolute;left:8px;bottom:8px;background:#dc2626;color:#fff;font-size:11px;font-weight:700;padding:1px 6px;border-radius:5px}
+.vc .body{padding:10px 14px 12px}
+.vc .ttl{font-weight:600;font-size:15px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;color:var(--text)}
+.vc .meta{display:flex;gap:8px;align-items:center;margin-top:8px;font-size:13px;color:var(--muted)}
+.vc .meta img{width:22px;height:22px;border-radius:50%;background:var(--chip);flex:none}
+.vc .meta .ch{color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vc .ds{margin-top:6px;font-size:13px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-line}
+.star{border:1px solid var(--line);background:none;color:var(--muted);border-radius:8px;padding:1px 8px;cursor:pointer;font-size:14px;line-height:1.4}
+.star.on{color:#eab308;border-color:#eab308}
+.src{font-size:11px;border-radius:5px;padding:1px 6px;background:var(--chip);color:var(--muted)}
+.ytbar{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin:0 0 12px;font-size:14px;color:var(--muted);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.ytbar a.btn,.ytbar button{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:4px 10px;cursor:pointer;color:var(--text);font-size:13px}
+.ytbar a.btn.pri{background:#dc2626;border-color:#dc2626;color:#fff}
+[data-only="x"],[data-only="yt"]{display:none}
+body.src-x [data-only="x"],body.src-yt [data-only="yt"]{display:block}
+body.src-yt .ytbar{display:flex}
 .toast button{border:0;background:none;color:#93c5fd;font-weight:600;cursor:pointer;font-size:14px}
 </style>
 </head>
-<body>
+<body class="src-x">
 <header><div class="bar">
-  <div class="brand">𝕏 Bookmarks</div>
+  <div class="brand">Library</div>
+  <div class="seg" role="tablist" aria-label="Source"><button data-src="x" class="on">𝕏</button><button data-src="yt">YouTube</button></div>
   <button class="fbtn" id="fbtn">Filters</button>
   <div class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
   <input id="q" type="search" placeholder="Search text, authors, link domains…" autocomplete="off"></div>
   <select id="sortSel" aria-label="Sort">
     <option value="bm">Newest bookmarked</option><option value="bm_old">Oldest bookmarked</option>
-    <option value="new">Newest posts</option><option value="old">Oldest posts</option></select>
+    <option value="new">Newest posts</option><option value="old">Oldest posts</option><option value="star" hidden>Starred first</option></select>
 </div></header>
 <div class="backdrop" id="backdrop"></div>
 <div class="layout">
 <aside id="side">
   <div class="sec"><h3>Topics <button id="clrTags">clear</button></h3><div class="chips" id="tags"></div></div>
   <div class="sec"><h3>Posted <button id="clrDate">clear</button></h3><div class="hist" id="hist"></div><div class="range" id="range"></div><div class="years" id="years"></div></div>
-  <div class="sec toggles"><h3>Has</h3>
+  <div class="sec toggles" data-only="yt"><h3>Videos</h3>
+    <label><input type="checkbox" id="hideShorts" checked> Hide Shorts</label>
+    <label><input type="checkbox" id="starOnly"> Starred only</label>
+    <div class="chips" id="durs" style="margin-top:8px"></div></div>
+  <div class="sec" data-only="yt"><h3>From <button id="clrSrc">clear</button></h3><div class="chips" id="srcs"></div></div>
+  <div class="sec toggles" data-only="x"><h3>Has</h3>
     <label><input type="checkbox" id="hasMedia"> Photo or video</label>
     <label><input type="checkbox" id="hasLink"> External link</label>
     <label><input type="checkbox" id="hasQuote"> Quoted post</label></div>
-  <div class="sec authors"><h3>Authors <button id="clrAuth">clear</button></h3><input id="aq" type="search" placeholder="Find author…"><div class="alist" id="alist"></div></div>
+  <div class="sec authors"><h3><span id="authLbl">Authors</span> <button id="clrAuth">clear</button></h3><input id="aq" type="search" placeholder="Find…"><div class="alist" id="alist"></div></div>
 </aside>
 <main>
+  <div class="ytbar" id="ytbar" data-only="yt"></div>
   <div class="status"><div id="count">Loading…</div><div class="active" id="active"></div></div>
   <div class="grid" id="grid"></div>
   <div id="sentinel"></div>
@@ -138,7 +168,10 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 let ITEMS=[],TAX=[],LABEL={},N=0;
-const st={q:"",tags:new Set(),authors:new Set(),from:null,to:null,media:false,link:false,quote:false,sort:"bm"};
+const st={src:"x",q:"",tags:new Set(),authors:new Set(),from:null,to:null,media:false,link:false,quote:false,sort:"bm",shorts:false,star:false,dur:null,from_:new Set()};
+const DATA={x:null,yt:null};let PLAYLISTS={};
+const DURS=[["s","< 10 min",0,600],["m","10–30 min",600,1800],["l","30–60 min",1800,3600],["xl","> 1 h",3600,1e9]];
+const NOUN=()=>st.src==="yt"?"videos":"bookmarks";
 let filtered=[],shown=0;const PAGE=40;
 
 function domain(u){try{return new URL(u).hostname.replace(/^www\./,"")}catch{return ""}}
@@ -146,8 +179,16 @@ function img(u,size){if(!u)return"";if(u.includes("pbs.twimg.com/profile_images"
 function fmtDate(d){const x=new Date(d);return x.getDate()+" "+MONTHS[x.getMonth()]+" "+x.getFullYear()}
 function ym(d){return d?d.slice(0,7):""}
 
+function prepYt(){
+  ITEMS.forEach((o,ix)=>{o.rank=ix+1;o.u=o.c;o.l=[];o.m=[];o.ym=ym(o.d);o.dom=[];
+    o.hay=((o.t||"")+" "+(o.x||"")+" "+(o.n||"")+" "+o.g.map(t=>LABEL[t]||t).join(" ")).toLowerCase()});
+}
+function srcKey(s){return s==="sub"?"sub":s==="like"?"like":s}
+function srcLabel(k){return k==="sub"?"Subscriptions":k==="like"?"Liked":k==="unsub"?"Unsubscribed channels":"▶ "+(PLAYLISTS[k.slice(3)]||"Playlist")}
+function fmtDur(s){if(s==null)return"";const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return(h?h+":"+String(m).padStart(2,"0"):m)+":"+String(x).padStart(2,"0")}
+function fmtViews(v){if(v==null)return"";return v>=1e6?(v/1e6).toFixed(v>=1e7?0:1)+"M views":v>=1e3?Math.round(v/1e3)+"K views":v+" views"}
 function prep(){
-  N=ITEMS.length;
+  N=ITEMS.length;if(st.src==="yt")return prepYt();
   ITEMS.forEach((o,ix)=>{
     o.rank=ix+1; // ITEMS arrive ordered by seq desc
     o.ym=ym(o.d);
@@ -162,9 +203,16 @@ function pass(o,skip){
   if(skip!=="tags"&&st.tags.size&&!o.g.some(t=>st.tags.has(t)))return false;
   if(skip!=="authors"&&st.authors.size&&!st.authors.has(o.u))return false;
   if(skip!=="date"){if(st.from&&o.ym<st.from)return false;if(st.to&&o.ym>st.to)return false}
-  if(st.media&&!o.hasMedia)return false;
-  if(st.link&&!o.l.length)return false;
-  if(st.quote&&!o.q)return false;
+  if(st.src==="x"){
+    if(st.media&&!o.hasMedia)return false;
+    if(st.link&&!o.l.length)return false;
+    if(st.quote&&!o.q)return false;
+  }else{
+    if(!st.shorts&&o.sh)return false;
+    if(st.star&&!o.st)return false;
+    if(skip!=="dur"&&st.dur){const D=DURS.find(d=>d[0]===st.dur);if(o.du==null||o.du<D[2]||o.du>=D[3])return false}
+    if(skip!=="from"&&st.from_.size&&!o.so.some(k=>st.from_.has(k))&&!(st.from_.has("unsub")&&o.us))return false;
+  }
   const T=terms();for(const t of T){if(!o.hay.includes(t))return false}
   return true;
 }
@@ -174,8 +222,9 @@ function apply(){
   if(s==="bm_old")filtered.reverse();
   else if(s==="new")filtered.sort((a,b)=>b.d<a.d?-1:1);
   else if(s==="old")filtered.sort((a,b)=>a.d<b.d?-1:1);
+  else if(s==="star")filtered.sort((a,b)=>(b.st||"")<(a.st||"")?-1:(b.st||"")>(a.st||"")?1:a.rank-b.rank);
   shown=0;$("#grid").innerHTML="";renderMore();
-  $("#count").textContent=filtered.length.toLocaleString()+" of "+N.toLocaleString()+" bookmarks";
+  $("#count").textContent=filtered.length.toLocaleString()+" of "+N.toLocaleString()+" "+NOUN();
   renderFacets();renderActive();saveHash();
 }
 function renderFacets(){
@@ -193,6 +242,13 @@ function renderFacets(){
   $("#years").innerHTML=years.map(y=>`<button class="chip ${st.from===y+"-01"&&st.to===y+"-12"?"on":""}" data-year="${y}">${y}<span class="c">${yc[y]||0}</span></button>`).join("");
   $("#range").textContent=st.from||st.to?("Showing "+lbl(st.from||months[0])+(st.from===st.to?"":" – "+lbl(st.to||months[months.length-1]))+"  ·  click a bar to pick a month, a second click extends the range"):"Click a bar for a month, or a year below";
   renderAuthors();
+  if(st.src==="yt"){
+    const dc={};ITEMS.forEach(o=>{if(pass(o,"dur")&&o.du!=null){const D=DURS.find(d=>o.du>=d[2]&&o.du<d[3]);if(D)dc[D[0]]=(dc[D[0]]||0)+1}});
+    $("#durs").innerHTML=DURS.map(d=>`<button class="chip ${st.dur===d[0]?"on":""}" data-dur="${d[0]}">${d[1]}<span class="c">${dc[d[0]]||0}</span></button>`).join("");
+    const sc={};ITEMS.forEach(o=>{if(pass(o,"from")){o.so.forEach(k=>sc[k]=(sc[k]||0)+1);if(o.us)sc.unsub=(sc.unsub||0)+1}});
+    const keys=["sub","like",...Object.keys(sc).filter(k=>k.startsWith("pl:")).sort((a,b)=>srcLabel(a).localeCompare(srcLabel(b))),"unsub"].filter(k=>sc[k]||st.from_.has(k));
+    $("#srcs").innerHTML=keys.map(k=>`<button class="chip ${st.from_.has(k)?"on":""}" data-from="${esc(k)}">${esc(srcLabel(k))}<span class="c">${sc[k]||0}</span></button>`).join("")||'<span class="range">Nothing yet</span>';
+  }
 }
 function lbl(k){const[y,m]=k.split("-");return MONTHS[+m-1]+" "+y}
 function renderAuthors(){
@@ -201,14 +257,17 @@ function renderAuthors(){
   let list=Object.keys(ac).filter(u=>!f||u.toLowerCase().includes(f)||(info[u].n||"").toLowerCase().includes(f));
   list.sort((a,b)=>(st.authors.has(b)-st.authors.has(a))||ac[b]-ac[a]||a.localeCompare(b));
   st.authors.forEach(u=>{if(!ac[u])list.unshift(u)});
-  $("#alist").innerHTML=list.slice(0,150).map(u=>`<div class="arow ${st.authors.has(u)?"on":""}" data-au="${esc(u)}"><img loading="lazy" src="${esc(info[u]?info[u].a:"")}" alt=""><span class="nm">${esc(info[u]?info[u].n:u)} <span class="c">@${esc(u)}</span></span><span class="c">${ac[u]||0}</span></div>`).join("")+(list.length>150?`<div class="range">${list.length-150} more – type to search</div>`:"");
+  $("#alist").innerHTML=list.slice(0,150).map(u=>`<div class="arow ${st.authors.has(u)?"on":""}" data-au="${esc(u)}"><img loading="lazy" src="${esc(info[u]?info[u].a:"")}" alt=""><span class="nm">${esc(info[u]?info[u].n:u)}${st.src==="x"?` <span class="c">@${esc(u)}</span>`:""}</span><span class="c">${ac[u]||0}</span></div>`).join("")+(list.length>150?`<div class="range">${list.length-150} more – type to search</div>`:"");
 }
 function renderActive(){
   const a=[];
   st.tags.forEach(t=>a.push(`<button class="chip on" data-rm-tag="${t}">${esc(LABEL[t]||t)} ✕</button>`));
-  st.authors.forEach(u=>a.push(`<button class="chip on" data-rm-au="${esc(u)}">@${esc(u)} ✕</button>`));
+  const nm={};if(st.src==="yt")ITEMS.forEach(o=>nm[o.u]=o.n);
+  st.authors.forEach(u=>a.push(`<button class="chip on" data-rm-au="${esc(u)}">${st.src==="yt"?esc(nm[u]||u):"@"+esc(u)} ✕</button>`));
+  if(st.src==="yt"&&st.dur)a.push(`<button class="chip on" data-rm-dur="1">${esc(DURS.find(d=>d[0]===st.dur)[1])} ✕</button>`);
+  if(st.src==="yt")st.from_.forEach(k=>a.push(`<button class="chip on" data-rm-from="${esc(k)}">${esc(srcLabel(k))} ✕</button>`));
   if(st.from||st.to)a.push(`<button class="chip on" data-rm-date="1">${esc(st.from?lbl(st.from):"…")}${st.from===st.to?"":" – "+esc(st.to?lbl(st.to):"…")} ✕</button>`);
-  if(a.length||st.q||st.media||st.link||st.quote)a.push(`<button id="clrAll">Clear all</button>`);
+  if(a.length||st.q||st.media||st.link||st.quote||st.star)a.push(`<button id="clrAll">Clear all</button>`);
   $("#active").innerHTML=a.join("");
 }
 function hl(html){const T=terms().filter(t=>t.length>1);if(!T.length)return html;const re=new RegExp("("+T.map(t=>t.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("|")+")","gi");return html.split(/(<[^>]+>)/).map(p=>p.startsWith("<")?p:p.replace(re,"<mark>$1</mark>")).join("")}
@@ -226,7 +285,17 @@ function quoteHtml(q){
   if(!q.available)return `<div class="q na">Quoted post unavailable · <a href="${esc(q.url)}" target="_blank" rel="noopener noreferrer">open on X</a></div>`;
   return `<div class="q"><div class="hd">${q.author_img?`<img class="av" loading="lazy" src="${esc(q.author_img)}" alt="">`:""}<div class="who"><b>${esc(q.author_name||"")}</b> <span>@${esc(q.author_username||"")} · ${q.created_at?fmtDate(q.created_at):""}</span></div><a class="xl" href="${esc(q.url)}" target="_blank" rel="noopener noreferrer" title="Open quoted post">↗</a></div>${q.text?`<div class="tx clamp">${linkify(q.text)}</div>`:""}${mediaHtml(q.media,q.url,true)}</div>`;
 }
-function card(o){
+function vcard(o){
+  const url="https://www.youtube.com/watch?v="+o.i;
+  const tags=o.g.map(t=>`<button class="tag" data-tag="${t}"><span class="dot" style="background:${COLORS[t]||"#888"}"></span>${esc(LABEL[t]||t)}</button>`).join("");
+  const badges=[o.so.includes("like")?'<span class="src" title="Liked on YouTube">♥ Liked</span>':"",...o.so.filter(k=>k.startsWith("pl:")).slice(0,2).map(k=>`<span class="src">${esc(srcLabel(k))}</span>`),o.sh?'<span class="src">Short</span>':""].join("");
+  return `<article class="card vc"><a class="thumb" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${o.th?`<img loading="lazy" decoding="async" src="${esc(o.th)}" alt="">`:""}${o.lv==="live"?'<span class="lvb">LIVE</span>':o.lv==="upcoming"?'<span class="lvb">UPCOMING</span>':""}${o.du?`<span class="dur">${fmtDur(o.du)}</span>`:""}</a>
+<div class="body"><a class="ttl" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${hl(esc(o.t))}</a>
+<div class="meta">${o.a?`<img loading="lazy" src="${esc(o.a)}" alt="">`:""}<a class="ch" href="https://www.youtube.com/channel/${esc(o.c)}" target="_blank" rel="noopener noreferrer">${hl(esc(o.n))}</a><span>· ${o.d?fmtDate(o.d):""}${o.v!=null?" · "+fmtViews(o.v):""}</span></div>
+${o.x?`<div class="ds">${hl(esc(o.x.slice(0,220)))}</div>`:""}
+<div class="ft">${tags}${badges}<span class="sp"></span><button class="star ${o.st?"on":""}" data-star="${o.i}" title="${o.st?"Unstar":"Star"}" aria-pressed="${o.st?"true":"false"}">${o.st?"★":"☆"}</button></div></div></article>`;
+}
+function card(o){if(st.src==="yt")return vcard(o);
   const links=o.l.filter(u=>!/^https?:\/\/(www\.)?(x|twitter)\.com\//.test(u));
   const tags=o.g.map(t=>`<button class="tag" data-tag="${t}"><span class="dot" style="background:${COLORS[t]||"#888"}"></span>${esc(LABEL[t]||t)}</button>`).join("");
   const long=(o.t||"").length>480||(o.t||"").split("\n").length>9;
@@ -240,7 +309,7 @@ ${links.length?`<div class="links">${links.slice(0,3).map(u=>`<a href="${esc(u)}
 }
 function renderMore(){
   const g=$("#grid");
-  if(!filtered.length){g.innerHTML='<div class="empty">No bookmarks match these filters.</div>';return}
+  if(!filtered.length){g.innerHTML=`<div class="empty">${st.src==="yt"&&!N?"No videos yet. Connect YouTube above; the first sync takes about an hour.":"No "+NOUN()+" match these filters."}</div>`;return}
   const next=filtered.slice(shown,shown+PAGE);shown+=next.length;
   g.insertAdjacentHTML("beforeend",next.map(card).join(""));
 }
@@ -254,6 +323,9 @@ $("#aq").addEventListener("input",renderAuthors);
 $("#clrTags").onclick=()=>{st.tags.clear();apply()};
 $("#clrAuth").onclick=()=>{st.authors.clear();$("#aq").value="";apply()};
 $("#clrDate").onclick=()=>{st.from=st.to=null;apply()};
+$("#clrSrc").onclick=()=>{st.from_.clear();apply()};
+$("#hideShorts").onchange=e=>{st.shorts=!e.target.checked;apply()};
+$("#starOnly").onchange=e=>{st.star=e.target.checked;apply()};
 let lastClick=null;
 document.addEventListener("click",e=>{
   const t=e.target.closest("[data-tag]");if(t){const k=t.dataset.tag;st.tags.has(k)?st.tags.delete(k):st.tags.add(k);apply();return}
@@ -263,7 +335,12 @@ document.addEventListener("click",e=>{
   if(e.target.closest("[data-rm-tag]")){st.tags.delete(e.target.closest("[data-rm-tag]").dataset.rmTag);apply();return}
   if(e.target.closest("[data-rm-au]")){st.authors.delete(e.target.closest("[data-rm-au]").dataset.rmAu);apply();return}
   if(e.target.closest("[data-rm-date]")){st.from=st.to=null;apply();return}
-  if(e.target.id==="clrAll"){st.tags.clear();st.authors.clear();st.from=st.to=null;st.q="";$("#q").value="";st.media=st.link=st.quote=false;["hasMedia","hasLink","hasQuote"].forEach(i=>$("#"+i).checked=false);apply();return}
+  const du=e.target.closest("[data-dur]");if(du){st.dur=st.dur===du.dataset.dur?null:du.dataset.dur;apply();return}
+  const fr=e.target.closest("[data-from]");if(fr){const k=fr.dataset.from;st.from_.has(k)?st.from_.delete(k):st.from_.add(k);apply();return}
+  if(e.target.closest("[data-rm-dur]")){st.dur=null;apply();return}
+  if(e.target.closest("[data-rm-from]")){st.from_.delete(e.target.closest("[data-rm-from]").dataset.rmFrom);apply();return}
+  const sw=e.target.closest("[data-src]");if(sw){switchSrc(sw.dataset.src);return}
+  if(e.target.id==="clrAll"){st.tags.clear();st.authors.clear();st.from=st.to=null;st.q="";$("#q").value="";st.media=st.link=st.quote=false;st.dur=null;st.from_.clear();st.star=false;$("#starOnly").checked=false;["hasMedia","hasLink","hasQuote"].forEach(i=>$("#"+i).checked=false);apply();return}
   if(e.target.classList.contains("more")){const tx=e.target.previousElementSibling;tx.classList.toggle("clamp");e.target.textContent=tx.classList.contains("clamp")?"Show more":"Show less";return}
 });
 const side=$("#side"),bd=$("#backdrop");
@@ -293,12 +370,58 @@ $("#undo").onclick=async()=>{
 };
 document.addEventListener("click",e=>{const b=e.target.closest("[data-remove]");if(b){e.stopPropagation();removeItem(b.dataset.remove,b)}},true);
 
-function saveHash(){const p=new URLSearchParams();if(st.q)p.set("q",st.q);if(st.tags.size)p.set("tags",[...st.tags].join(","));if(st.authors.size)p.set("au",[...st.authors].join(","));if(st.from)p.set("from",st.from);if(st.to)p.set("to",st.to);if(st.media)p.set("media","1");if(st.link)p.set("link","1");if(st.quote)p.set("quote","1");if(st.sort!=="bm")p.set("sort",st.sort);const h=p.toString();history.replaceState(null,"",h?"#"+h:location.pathname)}
-function loadHash(){const p=new URLSearchParams(location.hash.slice(1));st.q=p.get("q")||"";$("#q").value=st.q;(p.get("tags")||"").split(",").filter(Boolean).forEach(t=>st.tags.add(t));(p.get("au")||"").split(",").filter(Boolean).forEach(t=>st.authors.add(t));st.from=p.get("from");st.to=p.get("to");st.media=p.get("media")==="1";st.link=p.get("link")==="1";st.quote=p.get("quote")==="1";st.sort=p.get("sort")||"bm";$("#sortSel").value=st.sort;$("#hasMedia").checked=st.media;$("#hasLink").checked=st.link;$("#hasQuote").checked=st.quote}
+async function toggleStar(id,btn){
+  const o=ITEMS.find(x=>x.i===id);if(!o)return;const on=!o.st;
+  o.st=on?new Date().toISOString():null;btn.classList.toggle("on",on);btn.textContent=on?"★":"☆";btn.setAttribute("aria-pressed",on);btn.title=on?"Unstar":"Star";
+  try{await post(on?"/api/star":"/api/unstar",id)}catch(e){o.st=on?null:new Date().toISOString();btn.classList.toggle("on",!on);btn.textContent=!on?"★":"☆";toast("Couldn't save the star: "+e.message);return}
+  if(st.star&&!on)apply();
+}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-star]");if(b){e.stopPropagation();toggleStar(b.dataset.star,b)}},true);
 
-fetch("/api/bookmarks",{credentials:"same-origin"}).then(r=>{if(!r.ok)throw new Error(r.status);return r.json()}).then(j=>{
-  ITEMS=j.items;TAX=j.taxonomy;TAX.forEach(t=>LABEL[t.id]=t.label);prep();loadHash();apply();
-}).catch(e=>{$("#count").textContent="Couldn't load bookmarks ("+e.message+"). Try reloading.";});
+// YouTube connection strip
+async function ytStatus(){
+  const bar=$("#ytbar");
+  let s;try{s=await fetch("/api/yt/status",{credentials:"same-origin"}).then(r=>r.json())}catch{bar.textContent="Couldn't load YouTube status.";return}
+  if(!s.configured){bar.innerHTML="YouTube isn't configured on the server yet.";return}
+  if(!s.connected){bar.innerHTML='<a class="btn pri" href="/oauth/youtube/start">Connect YouTube</a><span>Read-only access to your subscriptions, likes and playlists. <a href="/privacy" target="_blank">Privacy</a></span>';return}
+  const lr=s.last_run,stt=s.state||{};
+  const when=lr&&lr.at?new Date(lr.at).toLocaleString([], {dateStyle:"medium",timeStyle:"short"}):"never";
+  const phase=stt.phase==="done"?"up to date":stt.phase?"syncing ("+stt.phase+")":"waiting for first sync";
+  bar.innerHTML=`<span>▶ ${esc(s.account&&s.account.channel_title||"YouTube")} · ${s.channels||0} channels · ${s.videos||0} videos${s.pending?" · "+s.pending+" pending":""} · ${phase} · last run ${esc(when)}${s.last_error&&lr&&lr.error?` · <span style="color:#dc2626">error: ${esc(lr.error)}</span>`:""}</span><span style="flex:1"></span><button id="ytSync">Sync now</button><a href="/privacy" target="_blank">Privacy</a>`;
+  $("#ytSync").onclick=async ev=>{ev.target.disabled=true;ev.target.textContent="Syncing…";try{await post("/api/yt/sync","")}catch(e){toast("Sync failed: "+e.message)}DATA.yt=null;await loadSrc("yt");ytStatus()};
+}
+
+function setSortLabels(){const o=$("#sortSel").options;const y=st.src==="yt";o[0].text=y?"Newest added":"Newest bookmarked";o[1].text=y?"Oldest added":"Oldest bookmarked";o[2].text=y?"Newest videos":"Newest posts";o[3].text=y?"Oldest videos":"Oldest posts";o[4].hidden=!y;if(!y&&st.sort==="star")st.sort="bm";$("#sortSel").value=st.sort}
+async function loadSrc(src){
+  if(!DATA[src]){
+    const r=await fetch(src==="yt"?"/api/videos":"/api/bookmarks",{credentials:"same-origin"});if(!r.ok)throw new Error(r.status);const j=await r.json();
+    if(j.taxonomy){TAX=j.taxonomy;TAX.forEach(t=>LABEL[t.id]=t.label)}
+    if(j.playlists){PLAYLISTS={};j.playlists.forEach(p=>PLAYLISTS[p.id]=p.title)}
+    DATA[src]=j.items;
+  }
+  if(st.src!==src)return;
+  ITEMS=DATA[src];prep();apply();
+}
+async function switchSrc(src){
+  if(src===st.src)return;
+  st.src=src;st.authors.clear();st.from=st.to=null;st.dur=null;st.from_.clear();
+  document.body.className="src-"+src;document.querySelectorAll("[data-src]").forEach(b=>b.classList.toggle("on",b.dataset.src===src));
+  $("#q").placeholder=src==="yt"?"Search titles, descriptions, channels…":"Search text, authors, link domains…";$("#authLbl").textContent=src==="yt"?"Channels":"Authors";
+  setSortLabels();$("#count").textContent="Loading…";$("#grid").innerHTML="";
+  if(src==="yt")ytStatus();
+  try{await loadSrc(src)}catch(e){$("#count").textContent="Couldn't load "+NOUN()+" ("+e.message+"). Try reloading."}
+}
+function saveHash(){const p=new URLSearchParams();if(st.q)p.set("q",st.q);if(st.tags.size)p.set("tags",[...st.tags].join(","));if(st.authors.size)p.set("au",[...st.authors].join(","));if(st.from)p.set("from",st.from);if(st.to)p.set("to",st.to);if(st.media)p.set("media","1");if(st.link)p.set("link","1");if(st.quote)p.set("quote","1");if(st.sort!=="bm")p.set("sort",st.sort);if(st.src==="yt"){p.set("src","yt");if(st.shorts)p.set("shorts","1");if(st.star)p.set("star","1");if(st.dur)p.set("dur",st.dur);if(st.from_.size)p.set("in",[...st.from_].join(","))}const h=p.toString();history.replaceState(null,"",h?"#"+h:location.pathname)}
+function loadHash(){const p=new URLSearchParams(location.hash.slice(1));st.q=p.get("q")||"";$("#q").value=st.q;(p.get("tags")||"").split(",").filter(Boolean).forEach(t=>st.tags.add(t));(p.get("au")||"").split(",").filter(Boolean).forEach(t=>st.authors.add(t));st.from=p.get("from");st.to=p.get("to");st.media=p.get("media")==="1";st.link=p.get("link")==="1";st.quote=p.get("quote")==="1";st.sort=p.get("sort")||"bm";$("#sortSel").value=st.sort;$("#hasMedia").checked=st.media;$("#hasLink").checked=st.link;$("#hasQuote").checked=st.quote;st.shorts=p.get("shorts")==="1";st.star=p.get("star")==="1";st.dur=p.get("dur");(p.get("in")||"").split(",").filter(Boolean).forEach(k=>st.from_.add(k));$("#hideShorts").checked=!st.shorts;$("#starOnly").checked=st.star;return p.get("src")==="yt"?"yt":"x"}
+
+(async()=>{
+  const want=loadHash();
+  if(want==="yt"){const keep={from:st.from,to:st.to,au:new Set(st.authors),dur:st.dur,in:new Set(st.from_)};
+    // the taxonomy comes with /api/bookmarks; fetch it first, then show YouTube with the saved filters
+    try{await loadSrc("x")}catch{}
+    await switchSrc("yt");st.from=keep.from;st.to=keep.to;keep.au.forEach(a=>st.authors.add(a));st.dur=keep.dur;keep.in.forEach(k=>st.from_.add(k));if(DATA.yt)apply();return}
+  try{await loadSrc("x")}catch(e){$("#count").textContent="Couldn't load bookmarks ("+e.message+"). Try reloading."}
+})();
 })();
 </script>
 </body>

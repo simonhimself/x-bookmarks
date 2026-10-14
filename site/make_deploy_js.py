@@ -1,13 +1,16 @@
 """Build dist/deploy.js: an async arrow function for the Cloudflare connector `execute` tool that uploads
 dist/worker.js as the x-bookmarks Worker (module syntax, D1 binding, Access AUD var), keeps the workers.dev
-route on and preview URLs off. Run build.py first."""
+route on, keeps secrets, sets the cron schedule, and preview URLs off. Run build.py first."""
 import json,os
 H=os.path.dirname(os.path.abspath(__file__))
 code=open(f'{H}/dist/worker.js').read()
 ACCOUNT='2423947c3898625c52d1d37070dffd03'
 meta={"main_module":"worker.js","compatibility_date":"2026-09-01",
       "bindings":[{"type":"d1","name":"DB","id":"14bf4a21-7cb1-403f-b558-f709ed307260"},
-                  {"type":"plain_text","name":"ACCESS_AUD","text":"b0c59ac7f696d3899b34faf887dac46f4b4087950da8b516fa7fa45df5460b6a"}]}
+                  {"type":"plain_text","name":"ACCESS_AUD","text":"b0c59ac7f696d3899b34faf887dac46f4b4087950da8b516fa7fa45df5460b6a"}],
+      # keep the YouTube secrets (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, TOKEN_KEY) across uploads
+      "keep_bindings":["secret_text"]}
+CRONS=["*/10 * * * *"]  # keep in sync with wrangler.toml [triggers]
 js=f"""async () => {{
 const code = {json.dumps(code)};
 const metadata = {json.dumps(meta)};
@@ -17,7 +20,8 @@ const body = ['--'+b, 'Content-Disposition: form-data; name="metadata"', 'Conten
 const up = await cloudflare.request({{method:'PUT', path:'/accounts/{ACCOUNT}/workers/scripts/x-bookmarks', body, contentType:'multipart/form-data; boundary='+b, rawBody:true}});
 if (!up.success) return {{step:'upload', errors: up.errors}};
 const sub = await cloudflare.request({{method:'POST', path:'/accounts/{ACCOUNT}/workers/scripts/x-bookmarks/subdomain', body:{{enabled:true, previews_enabled:false}}}});
-return {{uploaded: true, etag: up.result && up.result.etag, subdomain: sub.success ? sub.result : sub.errors}};
+const cr = await cloudflare.request({{method:'PUT', path:'/accounts/{ACCOUNT}/workers/scripts/x-bookmarks/schedules', body: {json.dumps([{"cron":c} for c in CRONS])}}});
+return {{uploaded: true, schedules: cr.success ? cr.result : cr.errors, etag: up.result && up.result.etag, subdomain: sub.success ? sub.result : sub.errors}};
 }}"""
 open(f'{H}/dist/deploy.js','w').write(js)
 print('dist/deploy.js',len(js))

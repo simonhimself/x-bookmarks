@@ -132,6 +132,33 @@ cd site && npx wrangler d1 execute x-bookmarks --remote --file migrations/0001_r
 
 `schema.sql` already includes it for new databases.
 
+## YouTube
+
+The site has an 𝕏 | YouTube switch. YouTube data comes from the YouTube Data API v3 with read-only
+access (`youtube.readonly`), Google Cloud project `x-bookmarks-youtube`, OAuth client
+`449518142865-mjkqjg7i3ueco2iabnlv0s6isqi911lj.apps.googleusercontent.com`, redirect URI
+`https://x-bookmarks.simons.workers.dev/oauth/youtube/callback`. The consent screen is published
+(in production, unverified), so refresh tokens don't expire after 7 days.
+
+| Item | Where |
+| --- | --- |
+| Worker secrets | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `TOKEN_KEY` (32 random bytes, base64) |
+| Refresh/access token | D1 table `yt_oauth`, AES-GCM sealed with `TOKEN_KEY` |
+| Tables | `yt_channels`, `videos`, `yt_playlists`, `yt_stars` ([migration 0002](../site/migrations/0002_youtube.sql)) |
+| Sync | cron `*/10 * * * *`; each run makes at most 40 subrequests (`YT_FETCH_BUDGET`) |
+| Status | `GET /api/yt/status`; the YouTube view shows it with a "Sync now" button |
+
+Daily cycle (UTC day): subscriptions → newest uploads of each subscribed channel (first time: last 10;
+later: everything newer than the last seen video, up to 10) → likes (full history the first time) →
+playlists whose etag changed → video details, Shorts detection and topic tags (the same rules as X,
+ported to JS by `build.py`; `tagging/parity_test.py` checks they agree). Then runs are no-ops until
+the next UTC day. About 70 quota units/day for 60 channels; roughly 550 for 500 (limit 10,000).
+Unsubscribed channels keep their videos (flagged). Stars live only in the app.
+
+Connect: open the YouTube view and click **Connect YouTube** (Google shows an "unverified app" warning
+once: Advanced → Go to …). Reconnect the same way if the status shows `invalid_grant`.
+`/privacy` is a short privacy note; it is behind Access like the rest of the host.
+
 ## Recovery
 
 - **Create the database schema** (first time or on a new database):

@@ -46,7 +46,7 @@ async function verifyAccess(req, env) {
 }
 
 const SEC_HEADERS = {
-  "Content-Security-Policy": "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; img-src https://pbs.twimg.com https://abs.twimg.com data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+  "Content-Security-Policy": "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; img-src https://pbs.twimg.com https://abs.twimg.com https://i.ytimg.com https://yt3.ggpht.com data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
   "Referrer-Policy": "no-referrer",
   "X-Content-Type-Options": "nosniff",
   "X-Frame-Options": "DENY",
@@ -120,9 +120,13 @@ async function writeRoute(req, env, url) {
   return jres({ ok: true, id, removed: false });
 }
 
+__YOUTUBE__
+
 export default {
   async fetch(req, env, ctx) {
     const url = new URL(req.url);
+    if (url.pathname === "/privacy" && (req.method === "GET" || req.method === "HEAD"))
+      return new Response(PRIVACY_HTML, { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=3600", ...SEC_HEADERS, "X-Robots-Tag": "noindex" } });
     const local = env.ALLOW_LOCAL === "1" && (url.hostname === "localhost" || url.hostname === "127.0.0.1");
     if (!local) {
       const user = await verifyAccess(req, env);
@@ -132,10 +136,22 @@ export default {
       if (req.method !== "POST") return new Response("Method not allowed", { status: 405, headers: { Allow: "POST", ...SEC_HEADERS } });
       return writeRoute(req, env, url);
     }
+    if (["/api/star", "/api/unstar", "/api/yt/sync", "/api/yt/disconnect"].includes(url.pathname)) {
+      if (req.method !== "POST") return new Response("Method not allowed", { status: 405, headers: { Allow: "POST", ...SEC_HEADERS } });
+      return ytWrite(req, env, url, ctx);
+    }
     if (req.method !== "GET" && req.method !== "HEAD") return new Response("Method not allowed", { status: 405, headers: { Allow: "GET, HEAD", ...SEC_HEADERS } });
     if (url.pathname === "/" || url.pathname === "/index.html")
       return new Response(HTML, { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "private, no-cache", ...SEC_HEADERS } });
     if (url.pathname === "/api/bookmarks") return bookmarks(req, env, ctx);
+    if (url.pathname === "/api/videos") return apiVideos(req, env, ctx);
+    if (url.pathname === "/api/yt/status") return apiYtStatus(env);
+    if (url.pathname === "/oauth/youtube/start") return oauthStart(req, env, url);
+    if (url.pathname === "/oauth/youtube/callback") return oauthCallback(req, env, url);
     return new Response("Not found", { status: 404, headers: { "Content-Type": "text/plain", ...SEC_HEADERS } });
+  },
+  // Cron trigger (wrangler.toml [triggers]): one small YouTube sync batch per run. Never goes through Access.
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(runSync(env).then(r => console.log("yt sync", JSON.stringify(r))).catch(e => console.log("yt sync failed", String(e))));
   },
 };

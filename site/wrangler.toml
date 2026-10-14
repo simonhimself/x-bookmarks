@@ -12,3 +12,8 @@ ACCESS_AUD = "b0c59ac7f696d3899b34faf887dac46f4b4087950da8b516fa7fa45df5460b6a"
 binding = "DB"
 database_name = "x-bookmarks"
 database_id = "14bf4a21-7cb1-403f-b558-f709ed307260"
+
+# YouTube sync: one small batch every 10 minutes (stays under the Free-plan 50-subrequest limit).
+# Runs are no-ops once the day's cycle is done or while YouTube isn't connected.
+[triggers]
+crons = ["*/10 * * * *"]
