@@ -236,6 +236,7 @@ async function runSync(env, opts = {}) {
     // live/upcoming videos: re-fetch details once a day until they have a real duration
     await env.DB.prepare("UPDATE videos SET needs_details=1 WHERE live_state IN ('live','upcoming')").run();
     await env.DB.prepare(PRIOR_SQL).run();   // refresh channel priors once a day
+    await env.DB.prepare("UPDATE videos SET tag_ver=?1 WHERE tag_ver=?2").bind(TAGGER_VERSION * 10 + 1, TAGGER_VERSION * 10 + 2).run(); // re-apply fresh priors (runRetag pass 2)
   }
   if (s.phase === "done") return { done: true, day: today };
   // One sync at a time (cron and "Sync now" can overlap). The lock expires after 10 minutes.
@@ -366,7 +367,7 @@ async function runRetag(env, maxRows = 600) {
     let { results } = await env.DB.prepare(`SELECT ${cols} FROM videos v WHERE v.needs_details=0 AND v.tag_ver < ?1 LIMIT 200`).bind(B).all();
     let pass = 1;
     if (!results.length) {
-      if ((await kv(env, "yt_prior_ver")) !== String(TAGGER_VERSION)) { await env.DB.prepare(PRIOR_SQL).run(); await kvSet(env, "yt_prior_ver", String(TAGGER_VERSION)); }
+      if ((await kv(env, "yt_prior_ver")) !== String(TAGGER_VERSION)) { await env.DB.prepare(PRIOR_SQL).run(); await env.DB.prepare("UPDATE videos SET tag_ver=?1 WHERE tag_ver=?2").bind(B, F).run(); await kvSet(env, "yt_prior_ver", String(TAGGER_VERSION)); }
       ({ results } = await env.DB.prepare(`SELECT ${cols}, c.prior_tag FROM videos v LEFT JOIN yt_channels c ON c.id=v.channel_id WHERE v.needs_details=0 AND v.tag_ver = ?1 LIMIT 200`).bind(B).all());
       pass = 2;
       if (!results.length) break;
