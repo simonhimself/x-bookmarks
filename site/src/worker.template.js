@@ -152,6 +152,9 @@ export default {
   },
   // Cron trigger (wrangler.toml [triggers]): one small YouTube sync batch per run. Never goes through Access.
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(runSync(env).then(r => console.log("yt sync", JSON.stringify(r))).catch(e => console.log("yt sync failed", String(e))));
+    ctx.waitUntil((async () => {
+      try { const n = await runRetag(env); if (n) console.log("yt retag", n); } catch (e) { console.log("yt retag failed", String(e)); }
+      try { console.log("yt sync", JSON.stringify(await runSync(env))); } catch (e) { console.log("yt sync failed", String(e)); }
+    })());
   },
 };

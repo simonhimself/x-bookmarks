@@ -41,11 +41,45 @@ function tagAssign(text, author) {
   const tags = ranked.filter(([, v]) => v >= Math.max(2, top * 0.5)).map(([k]) => k).filter(k => TAG_IDS.includes(k)).slice(0, 3);
   return { tags: tags.length ? tags : ["other"], src: "rules" };
 }
-function videoTagText(v) {
-  const desc = (v.description || "").replace(/https?:\/\/\S+/g, " ").slice(0, 1500);
-  return [v.title || "", desc, (v.yt_tags || []).join(" ")].join(" \n ");
+// ---- YouTube tagger (v2). Separate from the X tagger above, which stays byte-for-byte the X behaviour.
+// Titles, YouTube tags and the channel name carry most of the weight; descriptions are cleaned of
+// link/social/sponsor boilerplate and count for little. Ambiguous X keywords are dropped (rules_youtube.py).
+// A channel prior (majority topic of the channel's videos) nudges borderline videos. Unsure -> "other".
+const TAGGER_VERSION = 2;
+const YT_COMPILED = Object.fromEntries(Object.entries(TAG_RULES.YT).map(([k, v]) => [k, v.map(([p, w]) => [new RegExp("(?<![a-z0-9])(?:" + p + ")", "gi"), w])]));
+const BOILER = /https?:\/\/|www\.|@\w|subscribe|follow (me|us)|sponsor|patreon|merch|affiliate|use code|discount|promo|coupon|instagram|tiktok|twitter|\bx\.com|facebook|discord|linkedin|newsletter|podcast (on|available)|spotify|apple podcasts|all rights|©|business inquir|contact:|e-?mail:|gear i use|my (camera|gear|setup)|links? below|chapters?:|timestamps?:|music by|^#\w+(\s+#\w+)*$/i;
+function cleanDesc(d) {
+  return String(d || "").split(/\r?\n/).map(l => l.trim()).filter(l => l && !BOILER.test(l))
+    .map(l => l.replace(/^\(?\d{1,2}:\d{2}(:\d{2})?\)?\s*[-–]?\s*/, "")).join(" \n ").slice(0, 600);
 }
-function tagVideo(v) { return tagAssign(videoTagText(v), v.channel_handle ? v.channel_handle.replace(/^@/, "") : null); }
+function ytScore(v, prior) {
+  const parts = [[v.title || "", 1.35, 2], [(v.yt_tags || []).join(" ; "), 0.6, 2], [v.channel_title || "", 0.7, 1], [cleanDesc(v.description), 0.4, 3]];
+  const s = {};
+  for (const [tag, rs] of Object.entries(YT_COMPILED)) {
+    for (const [rx, w] of rs) for (const [txt, f, cap] of parts) {
+      if (!txt) continue; rx.lastIndex = 0;
+      const n = (txt.match(rx) || []).length;
+      if (n) s[tag] = (s[tag] || 0) + w * f * Math.min(n, cap);
+    }
+  }
+  if (prior && TAG_IDS.includes(prior) && prior !== "other") s[prior] = (s[prior] || 0) + 1.5;
+  if (s.testing && !s["ai-coding"]) s.testing *= 0.3;
+  return s;
+}
+function tagVideo(v, prior) {
+  const s = ytScore(v, prior);
+  const ranked = Object.entries(s).filter(([, x]) => x >= 2).sort((a, b) => b[1] - a[1]);
+  if (!ranked.length) return { tags: ["other"], src: "unclear", base: "other" };
+  const top = ranked[0][1];
+  const tags = ranked.filter(([, x]) => x >= Math.max(2, top * 0.6)).map(([k]) => k).filter(k => TAG_IDS.includes(k)).slice(0, 2);
+  return { tags: tags.length ? tags : ["other"], src: prior ? "rules+channel" : "rules" };
+}
+// Channel priors: a channel's most common topic among its own videos (tagged without priors), if it
+// has >= 3 such videos and that topic is >= 50% of them.
+const PRIOR_SQL = `UPDATE yt_channels SET prior_tag = (
+  SELECT base_tag FROM videos v WHERE v.channel_id = yt_channels.id AND v.base_tag IS NOT NULL AND v.base_tag <> 'other'
+  GROUP BY base_tag HAVING COUNT(*) >= 3 AND COUNT(*) * 2 >= (SELECT COUNT(*) FROM videos w WHERE w.channel_id = yt_channels.id AND w.base_tag IS NOT NULL AND w.base_tag <> 'other')
+  ORDER BY COUNT(*) DESC LIMIT 1)`;
 
 // ---------- crypto ----------
 const enc = new TextEncoder(), dec = new TextDecoder();
@@ -201,6 +235,7 @@ async function runSync(env, opts = {}) {
     s = { day: today, phase: "subs", tok: null, pages: 0 };
     // live/upcoming videos: re-fetch details once a day until they have a real duration
     await env.DB.prepare("UPDATE videos SET needs_details=1 WHERE live_state IN ('live','upcoming')").run();
+    await env.DB.prepare(PRIOR_SQL).run();   // refresh channel priors once a day
   }
   if (s.phase === "done") return { done: true, day: today };
   // One sync at a time (cron and "Sync now" can overlap). The lock expires after 10 minutes.
@@ -279,7 +314,9 @@ async function runSyncLocked(env, ctx, s, today) {
         const ids = results.map(r => r.id);
         const j = await api(env, ctx, "/videos", { part: "snippet,contentDetails,statistics,player,liveStreamingDetails", id: ids.join(","), maxWidth: "320", maxResults: "50" });
         const got = new Map((j.items || []).map(v => [v.id, v]));
-        const handles = new Map();
+        const chIds = [...new Set([...got.values()].map(v => v.snippet && v.snippet.channelId).filter(Boolean))];
+        const priors = new Map();
+        if (chIds.length) { const { results: pr } = await env.DB.prepare(`SELECT id, prior_tag FROM yt_channels WHERE id IN (${chIds.map((_, i) => "?" + (i + 1)).join(",")})`).bind(...chIds).all(); pr.forEach(r => priors.set(r.id, r.prior_tag)); }
         const st = [];
         for (const id of ids) {
           const v = got.get(id);
@@ -291,12 +328,13 @@ async function runSyncLocked(env, ctx, s, today) {
           // Shorts: the API has no flag. Vertical player and <= 3 min, or <= 60 s with #shorts.
           const tagsTxt = ((sn.title || "") + " " + (sn.description || "")).toLowerCase();
           const isShort = dur != null && dur > 0 && dur <= 180 && ((h > w && w > 0) || (dur <= 60 && tagsTxt.includes("#short")));
-          const row = { title: sn.title || "", description: sn.description || "", yt_tags: sn.tags || [], channel_handle: handles.get(sn.channelId) };
-          const t = tagVideo(row);
+          const row = { title: sn.title || "", description: sn.description || "", yt_tags: sn.tags || [], channel_title: sn.channelTitle || "" };
+          const base = tagVideo(row, null).tags[0];
+          const t = tagVideo(row, priors.get(sn.channelId));
           st.push(env.DB.prepare(`UPDATE videos SET channel_id=?2, channel_title=?3, title=?4, description=?5, yt_tags=?6, published_at=?7, duration_s=?8, is_short=?9, live_state=?10,
-              thumb=?11, views=?12, lang=?13, tags=?14, primary_tag=?15, tag_source=?16, needs_details=0, unavailable=0 WHERE id=?1`)
+              thumb=?11, views=?12, lang=?13, tags=?14, primary_tag=?15, tag_source=?16, base_tag=?17, tag_ver=?18, needs_details=0, unavailable=0 WHERE id=?1`)
             .bind(id, sn.channelId || null, sn.channelTitle || null, sn.title || null, (sn.description || "").slice(0, 5000), JSON.stringify((sn.tags || []).slice(0, 30)), sn.publishedAt || null, dur, isShort ? 1 : 0, live,
-              bestThumb(sn.thumbnails), sx.viewCount != null ? +sx.viewCount : null, sn.defaultAudioLanguage || sn.defaultLanguage || null, JSON.stringify(t.tags), t.tags[0], t.src));
+              bestThumb(sn.thumbnails), sx.viewCount != null ? +sx.viewCount : null, sn.defaultAudioLanguage || sn.defaultLanguage || null, JSON.stringify(t.tags), t.tags[0], t.src, base, TAGGER_VERSION * 10 + 2));
         }
         await env.DB.batch(st); ctx.detailed += ids.length; changed = true;
       }
@@ -315,6 +353,35 @@ async function runSyncLocked(env, ctx, s, today) {
   if (q.day !== pday) q = { day: pday, units: 0 };
   q.units += ctx.calls; await kvSet(env, "yt_quota", JSON.stringify(q));
   return status;
+}
+
+// ---------- retag (after a tagger change) ----------
+// Two passes so channel priors come from the new tagger: (1) tag every video without priors and store
+// base_tag; (2) compute priors; (3) tag again with priors. Runs from the cron in chunks; no API calls.
+async function runRetag(env, maxRows = 600) {
+  const B = TAGGER_VERSION * 10 + 1, F = TAGGER_VERSION * 10 + 2;
+  let done = 0; const t0 = Date.now();
+  const cols = "v.id, v.title, v.description, v.yt_tags, v.channel_title";
+  while (done < maxRows && Date.now() - t0 < 20000) {
+    let { results } = await env.DB.prepare(`SELECT ${cols} FROM videos v WHERE v.needs_details=0 AND v.tag_ver < ?1 LIMIT 200`).bind(B).all();
+    let pass = 1;
+    if (!results.length) {
+      if ((await kv(env, "yt_prior_ver")) !== String(TAGGER_VERSION)) { await env.DB.prepare(PRIOR_SQL).run(); await kvSet(env, "yt_prior_ver", String(TAGGER_VERSION)); }
+      ({ results } = await env.DB.prepare(`SELECT ${cols}, c.prior_tag FROM videos v LEFT JOIN yt_channels c ON c.id=v.channel_id WHERE v.needs_details=0 AND v.tag_ver = ?1 LIMIT 200`).bind(B).all());
+      pass = 2;
+      if (!results.length) break;
+    }
+    const st = results.map(r => {
+      const row = { title: r.title, description: r.description, yt_tags: JSON.parse(r.yt_tags || "[]"), channel_title: r.channel_title };
+      const t = tagVideo(row, pass === 2 ? r.prior_tag : null);
+      return pass === 1
+        ? env.DB.prepare("UPDATE videos SET base_tag=?2, tags=?3, primary_tag=?4, tag_source=?5, tag_ver=?6 WHERE id=?1").bind(r.id, t.tags[0], JSON.stringify(t.tags), t.tags[0], t.src, B)
+        : env.DB.prepare("UPDATE videos SET tags=?2, primary_tag=?3, tag_source=?4, tag_ver=?5 WHERE id=?1").bind(r.id, JSON.stringify(t.tags), t.tags[0], t.src, F);
+    });
+    await env.DB.batch(st); done += results.length;
+  }
+  if (done) await bumpYtVersion(env);
+  return done;
 }
 
 // ---------- HTTP API ----------
@@ -337,7 +404,7 @@ async function apiYtStatus(env) {
   const parse = async k => { try { return JSON.parse((await kv(env, k)) || "null"); } catch { return null; } };
   const conn = await env.DB.prepare("SELECT v FROM yt_oauth WHERE k='connected'").first("v");
   const hasRt = await env.DB.prepare("SELECT 1 AS x FROM yt_oauth WHERE k='refresh_token'").first("x");
-  const counts = await env.DB.prepare("SELECT (SELECT COUNT(*) FROM videos WHERE needs_details=0 AND unavailable=0) AS videos, (SELECT COUNT(*) FROM videos WHERE needs_details=1) AS pending, (SELECT COUNT(*) FROM yt_channels WHERE subscribed=1) AS channels").first();
+  const counts = await env.DB.prepare("SELECT (SELECT COUNT(*) FROM videos WHERE needs_details=0 AND tag_ver < " + (TAGGER_VERSION * 10 + 2) + ") AS retag_pending, (SELECT COUNT(*) FROM videos WHERE needs_details=0 AND unavailable=0) AS videos, (SELECT COUNT(*) FROM videos WHERE needs_details=1) AS pending, (SELECT COUNT(*) FROM yt_channels WHERE subscribed=1) AS channels").first();
   return jres({ configured: !!(env.TOKEN_KEY && env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET), connected: !!hasRt, account: conn ? JSON.parse(conn) : null,
     state: await parse("yt_state"), last_run: await parse("yt_last_run"), last_error: await parse("yt_last_error"), quota: await parse("yt_quota"), ...counts });
 }
@@ -346,7 +413,7 @@ async function ytWrite(req, env, url, ctx) {
   let body; try { body = await req.json(); } catch { return jres({ error: "invalid JSON" }, 400); }
   // Sync now: answer at once and run the batch in the background (a full batch takes ~30 s of wall time,
   // mostly D1 round trips; phones drop the request). The page polls /api/yt/status.
-  if (url.pathname === "/api/yt/sync") { ctx.waitUntil(runSync(env, { budget: 25 }).catch(e => console.log("yt manual sync failed", String(e)))); return jres({ ok: true, started: true }, 202); }
+  if (url.pathname === "/api/yt/sync") { ctx.waitUntil((async () => { try { await runRetag(env, 1200); } catch (e) { console.log("yt retag failed", String(e)); } await runSync(env, { budget: 25 }); })().catch(e => console.log("yt manual sync failed", String(e)))); return jres({ ok: true, started: true }, 202); }
   if (url.pathname === "/api/yt/disconnect") { await env.DB.prepare("DELETE FROM yt_oauth").run(); await kvSet(env, "yt_state", ""); return jres({ ok: true }); }
   const id = body && String(body.id || "");
   if (!/^[A-Za-z0-9_-]{11}$/.test(id)) return jres({ error: "invalid video id" }, 400);

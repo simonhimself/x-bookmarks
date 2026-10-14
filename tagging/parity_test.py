@@ -6,6 +6,7 @@ import json,os,sys,subprocess,tempfile
 H=os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0,H)
 import tag as T
 from rules import R,AUTHOR
+from rules_youtube import YT_RULES
 T.MANUAL={}
 path=sys.argv[1] if len(sys.argv)>1 else os.path.join(H,'..','bookmarks.json')
 B=json.load(open(path))
@@ -13,7 +14,7 @@ cases=[{'id':o['id'],'text':T.blob(o),'author':o.get('author_username')} for o i
 py={c['id']:T.assign(o,{})[0] for c,o in zip(cases,B)}
 src=open(os.path.join(H,'..','site','src','youtube.js')).read()
 seg=src[src.index('// ---------- tagging'):src.index('// ---------- crypto')]
-rules=json.dumps({'R':{k:[[p,w] for p,w in v] for k,v in R.items()},'AUTHOR':AUTHOR})
+rules=json.dumps({'R':{k:[[p,w] for p,w in v] for k,v in R.items()},'AUTHOR':AUTHOR,'YT':YT_RULES})
 tax=open(os.path.join(H,'taxonomy.json')).read()
 js=f"""const TAXONOMY={tax};const TAG_RULES={rules};const TAG_IDS=TAXONOMY.map(t=>t.id);
 const COMPILED=Object.fromEntries(Object.entries(TAG_RULES.R).map(([k,v])=>[k,v.map(([p,w])=>[new RegExp("(?<![a-z0-9])(?:"+p+")","gi"),w])]));
