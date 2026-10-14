@@ -214,8 +214,17 @@ async function runSync(env, opts = {}) {
 async function runSyncLocked(env, ctx, s, today) {
   const started = Date.now(); let changed = false, error = null;
   try {
+    let interleave = 0;
     while (s.phase !== "done") {
-      if (s.phase === "subs") {
+      // While uploads are still being collected, detail every full batch of 50 right away so videos
+      // show up during a long first sync instead of only at the end.
+      let detailNow = s.phase === "details";
+      if (!detailNow && s.phase !== "subs" && interleave++ % 5 === 0) detailNow = ((await env.DB.prepare("SELECT COUNT(*) AS n FROM (SELECT 1 FROM videos WHERE needs_details=1 LIMIT 50)").first("n")) || 0) >= 50;
+      let results = null;
+      if (detailNow) {
+        ({ results } = await env.DB.prepare("SELECT id FROM videos WHERE needs_details=1 LIMIT 50").all());
+        if (!results.length) { if (s.phase === "details") s.phase = "done"; continue; }
+      } else if (s.phase === "subs") {
         const j = await api(env, ctx, "/subscriptions", { part: "snippet", mine: "true", maxResults: "50", order: "alphabetical", ...(s.tok ? { pageToken: s.tok } : {}) });
         const st = (j.items || []).map(it => { const sn = it.snippet || {}; const cid = sn.resourceId && sn.resourceId.channelId; return cid && env.DB.prepare("INSERT INTO yt_channels(id,title,thumb,uploads_playlist,subscribed,seen_day) VALUES(?1,?2,?3,?4,1,?5) ON CONFLICT(id) DO UPDATE SET title=excluded.title, thumb=excluded.thumb, subscribed=1, seen_day=excluded.seen_day").bind(cid, sn.title || "", bestThumb(sn.thumbnails), "UU" + cid.slice(2), today); }).filter(Boolean);
         if (st.length) await env.DB.batch(st);
@@ -264,9 +273,9 @@ async function runSyncLocked(env, ctx, s, today) {
         if (j.nextPageToken) { s.tok = j.nextPageToken; continue; }
         await env.DB.prepare("UPDATE yt_playlists SET dirty=0 WHERE id=?1").bind(pl.id).run();
         s.pl = null; s.tok = null;
-      } else if (s.phase === "details") {
-        const { results } = await env.DB.prepare("SELECT id FROM videos WHERE needs_details=1 LIMIT 50").all();
-        if (!results.length) { s.phase = "done"; continue; }
+      }
+      if (detailNow) {
+        // (details body)
         const ids = results.map(r => r.id);
         const j = await api(env, ctx, "/videos", { part: "snippet,contentDetails,statistics,player,liveStreamingDetails", id: ids.join(","), maxWidth: "320", maxResults: "50" });
         const got = new Map((j.items || []).map(v => [v.id, v]));
