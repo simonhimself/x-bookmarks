@@ -17,7 +17,7 @@ import json,os,sys,time,argparse,subprocess
 sys.path.insert(0,os.path.dirname(os.path.abspath(__file__)))
 from lib import ROOT,sqlv,connector_js,ACCOUNT,DB_ID
 SITE=os.path.join(ROOT,'site')
-LIMIT=50
+LIMIT=200
 SELECT=f"SELECT id FROM removals WHERE done_at IS NULL ORDER BY removed_at LIMIT {LIMIT};"
 
 def outdir():
