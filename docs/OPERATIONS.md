@@ -77,6 +77,18 @@ python3 sync/sync.py push  --ids ID,ID           # re-push posts after editing t
 logged in. Otherwise it writes `sync/out/<timestamp>/apply_NN.js` files to run, in
 order, with the Cloudflare connector's `execute` tool.
 
+### Removals
+
+The site's **Remove** button queues the post in the D1 `removals` table and hides it at once
+(Undo un-queues it while pending). The daily routine reads the pending ids with
+`sync/unbookmark.py pending`, calls `user-X` `delete_users_bookmark` (user `17562615`) for each,
+and marks them with `sync/unbookmark.py done`. Failures stay pending with `attempts` and
+`last_error`. Bookmark rows are never deleted, so a removed post stays "known" to the sync and
+is never re-added. Details in [`sync/README.md`](../sync/README.md#removals-unbookmark-on-x).
+
+Inspect the queue: `SELECT * FROM removals WHERE done_at IS NULL;` (pending) or
+`... WHERE last_error IS NOT NULL;` (failing).
+
 ### Cost
 
 X bills about $0.005 for every post `get_users_bookmarks` returns, including posts
@@ -107,6 +119,18 @@ python3 site/build.py && python3 site/make_deploy_js.py
 
 `deploy.js` uploads the Worker with its D1 and `ACCESS_AUD` bindings, keeps the
 workers.dev route on and turns preview URLs off.
+
+## Migrations
+
+Existing databases need [`site/migrations/0001_removals.sql`](../site/migrations/0001_removals.sql)
+(creates `removals`; idempotent, doesn't touch `bookmarks`) **before** deploying a Worker with the
+Remove button, because `/api/bookmarks` reads that table:
+
+```bash
+cd site && npx wrangler d1 execute x-bookmarks --remote --file migrations/0001_removals.sql
+```
+
+`schema.sql` already includes it for new databases.
 
 ## Recovery
 
@@ -219,6 +243,10 @@ Not stored in D1, so lost or approximated:
 | Quoted and replied posts | `text` is the cleaned text; `links` is empty; the `reason` for an unavailable post is lost. |
 
 None of these are used by the sync, the tagger's stored tags or the site.
+
+`restore.py` reads only `bookmarks`; the `removals` table stays in D1 and keeps hiding removed
+posts. Removed posts come back into `bookmarks.json` like any other, which is what keeps them
+"known" to the sync.
 
 `tagging/author_priors.json` is recovered exactly: it's learned from the tags,
 which D1 keeps. `tagging/manual_tags.json` is not in D1 as such: D1 keeps the

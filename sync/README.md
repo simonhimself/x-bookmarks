@@ -59,7 +59,29 @@ The routine does the X fetch (the only step that costs money) and then runs this
 6. Optional: if `$DIR/unclear.txt` exists (posts with no usable text, tagged `other`), look at the
    listed images, add `"<id>": ["tag", ...]` entries to `tagging/manual_tags.json`, then run
    `python3 sync/sync.py push --ids <ids>` and apply the files it prints.
-7. Report the number of new bookmarks, the X credit used, and anything left unclear.
+7. **Unbookmark removed posts** (see below).
+8. Report the number of new bookmarks, the number unbookmarked and still pending, the X credit used, and anything left unclear.
+
+### Removals: unbookmark on X
+
+Clicking **Remove** in the app inserts the id into the D1 `removals` table (`done_at` NULL =
+pending) and hides it from the site. The row in `bookmarks` and in `bookmarks.json` is kept on
+purpose: the id stays "known", so `check`/`run` stop at it and never re-add it, even if X still
+returns it because the unbookmark hasn't happened yet or failed.
+
+1. `python3 sync/unbookmark.py pending` writes `sync/out/unbookmark-<ts>/pending.txt` (up to 50
+   ids, oldest removal first). With the connector it writes `read_pending.js` instead: run it with
+   `user-Cloudflare` `execute` (`write_to_file: true`), then
+   `python3 sync/unbookmark.py pending --from-result <result file>`.
+2. For each id call `user-X` `delete_users_bookmark` with `id=17562615`, `tweet_id=<id>`. Only ids
+   from `pending.txt`, one call each, no retries in a loop. A response with
+   `data.bookmarked == false` is success (also when it was already unbookmarked).
+3. `python3 sync/unbookmark.py done --ok ID,ID --failed 'ID=reason' ...` sets `done_at` for
+   successes and records `attempts`/`last_error` for failures, which stay pending for the next run.
+   Apply the printed `apply_done.js` with the connector if wrangler isn't logged in.
+
+Unbookmarking is a write and isn't billed per post like reads; it doesn't change `data_version`.
+Undo in the app only works while the id is still pending.
 
 ### Cost note (important)
 

@@ -19,6 +19,7 @@
 1. Open **[x-bookmarks.simons.workers.dev](https://x-bookmarks.simons.workers.dev)**, enter the allowed email address, and type in the one-time code Cloudflare emails you.
 2. Pick topics, click a bar in the **Posted** histogram (a second click extends the range to a span of months) or a year, choose authors, or type in the search box.
 3. Change the order with **Newest/Oldest bookmarked** or **Newest/Oldest posts**. The filters are kept in the URL, so you can bookmark or reload a view.
+4. Done with a post? Click **Remove** on its card. It disappears at once (**Undo** in the toast brings it back), and the next daily sync unbookmarks it on X, so X and the app stay in sync.
 
 The page follows your system's light or dark setting and collapses the filters into a drawer on narrow screens.
 
@@ -37,7 +38,7 @@ flowchart LR
 
 - **Export.** Bookmarks are read from the X API through Grok Bot's X plugin, 50 per page. X bills about $0.005 for every post returned. Quoted and replied-to posts are fetched through the free public X reader. `sync/lib.py` normalizes the API pages and expands `t.co` links.
 - **Tagging.** `tagging/tag.py` assigns tags from `taxonomy.json` using keyword rules (`rules.py`) and learned author priors. Manual and visual-review overrides win over the rules, and posts with no clear signal are tagged "Other" and listed for review.
-- **Storage and serving.** A single Worker serves the page and a read-only `/api/bookmarks` endpoint from D1. There are no write endpoints. The Worker also verifies the Cloudflare Access token itself, sends strict security headers, and caches the response per data version, so new data appears without a redeploy.
+- **Storage and serving.** A single Worker serves the page and an `/api/bookmarks` endpoint from D1. The only writes are `POST /api/remove` and `/api/restore`, which queue or un-queue a post in the `removals` table; they accept same-origin JSON requests only. The Worker also verifies the Cloudflare Access token itself, sends strict security headers, and caches the response per data version, so new data appears without a redeploy.
 - **Daily sync.** A Grok Bot routine, run by the owner's Cloudflare bot at 07:31 Zurich time, checks the 10 newest bookmarks and fetches further pages only if all of them are new. It then fetches quoted posts, tags the new posts and upserts them into D1. The routine contract is in [`sync/README.md`](sync/README.md).
 
 The bookmark data itself is not in this repository. Only code and docs are committed; the data files are listed in [`.gitignore`](.gitignore). If the local copy is lost, `sync/restore.py` rebuilds it from D1 (see [Recover from Cloudflare](docs/OPERATIONS.md#recover-from-cloudflare)).
@@ -65,7 +66,7 @@ There is no automated test suite. After a change, rebuild with `python3 site/bui
 
 ## Limitations
 
-- **Single user.** Only one allowed email can sign in, and the site is read-only: tags can't be edited in the browser.
+- **Single user.** Only one allowed email can sign in, and tags can't be edited in the browser. Removing a post only reaches X at the next daily sync; until then Undo works, afterwards bookmark it again on X.
 - **Needs paid X API access.** Reading bookmarks costs about $0.005 per post returned, including already-known posts on the checked page. The daily check of 10 posts costs about $0.05.
 - **Updates once a day.** New bookmarks show up after the next morning sync, not instantly.
 - **Tagging is heuristic.** Posts with little text, such as photos and videos, can be mis-tagged or land in "Other" until reviewed.
@@ -75,10 +76,10 @@ There is no automated test suite. After a change, rebuild with `python3 site/bui
 
 | Path | Purpose |
 | --- | --- |
-| [`site/src/worker.template.js`](site/src/worker.template.js) | Worker: Access check, read-only API, caching, security headers |
+| [`site/src/worker.template.js`](site/src/worker.template.js) | Worker: Access check, bookmarks API, remove/restore routes, caching, security headers |
 | [`site/src/index.html`](site/src/index.html) | The bookmarks page: filters, search, cards, themes |
-| [`site/schema.sql`](site/schema.sql) | D1 schema |
-| [`sync/`](sync/) | Incremental sync (`sync.py`, `lib.py`), restore from D1 (`restore.py`), one-off loaders, and the [routine contract](sync/README.md) |
+| [`site/schema.sql`](site/schema.sql), [`site/migrations/`](site/migrations/) | D1 schema and migrations for existing databases |
+| [`sync/`](sync/) | Incremental sync (`sync.py`, `lib.py`), unbookmark queue (`unbookmark.py`), restore from D1 (`restore.py`), one-off loaders, and the [routine contract](sync/README.md) |
 | [`tagging/`](tagging/) | Tagger, keyword rules and the topic taxonomy |
 | [`docs/OPERATIONS.md`](docs/OPERATIONS.md) | Account configuration, deploy, data locations and recovery |
 | [`EXPORT_NOTES.md`](EXPORT_NOTES.md) | Notes from the initial export: paging quirks and costs |
