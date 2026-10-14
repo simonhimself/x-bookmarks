@@ -76,6 +76,8 @@ async function bumpYtVersion(env) {
 }
 
 // ---------- OAuth ----------
+// Host-aware: the callback goes back to the host the sign-in started on. Google only accepts the URIs
+// registered on the OAuth client; production uses https://library.simonhimself.com/oauth/youtube/callback.
 function redirectUri(url) { return url.origin + "/oauth/youtube/callback"; }
 const STATE_COOKIE = "yt_oauth_state";
 
@@ -339,7 +341,7 @@ async function ytWrite(req, env, url, ctx) {
 const PRIVACY_HTML = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Privacy – Library</title>
 <body style="font:16px/1.6 system-ui,-apple-system,sans-serif;max-width:640px;margin:48px auto;padding:0 20px;color:#222">
 <h1>Privacy</h1>
-<p><b>Library</b> (x-bookmarks.simons.workers.dev) is a personal, single-user app. Its only user is its owner, Simon. It is not offered to anyone else.</p>
+<p><b>Library</b> (library.simonhimself.com) is a personal, single-user app. Its only user is its owner, Simon. It is not offered to anyone else.</p>
 <h2>YouTube data</h2>
 <p>With the owner's consent, the app uses the YouTube Data API with <b>read-only</b> access (<code>youtube.readonly</code>) to read his subscriptions, liked videos and playlists, and public details of those videos (title, description, duration, thumbnail, view count). It never posts, rates, comments, subscribes or changes anything on YouTube.</p>
 <h2>Where it is stored</h2>

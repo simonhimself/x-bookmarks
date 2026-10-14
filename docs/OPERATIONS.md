@@ -8,7 +8,7 @@ live site. For what the project does and how to run it locally, see the
 
 | Item | Value |
 | --- | --- |
-| Live URL | https://x-bookmarks.simons.workers.dev |
+| Live URL | https://library.simonhimself.com (Workers Custom Domain, zone `simonhimself.com`); https://x-bookmarks.simons.workers.dev still works |
 | Cloudflare account ID | `2423947c3898625c52d1d37070dffd03` |
 | Worker | `x-bookmarks` (workers.dev route on, preview URLs off) |
 | D1 database | `x-bookmarks`, ID `14bf4a21-7cb1-403f-b558-f709ed307260`, bound as `DB` |
@@ -137,7 +137,9 @@ cd site && npx wrangler d1 execute x-bookmarks --remote --file migrations/0001_r
 The site has an 𝕏 | YouTube switch. YouTube data comes from the YouTube Data API v3 with read-only
 access (`youtube.readonly`), Google Cloud project `x-bookmarks-youtube`, OAuth client
 `449518142865-mjkqjg7i3ueco2iabnlv0s6isqi911lj.apps.googleusercontent.com`, redirect URI
-`https://x-bookmarks.simons.workers.dev/oauth/youtube/callback`. The consent screen is published
+`https://library.simonhimself.com/oauth/youtube/callback` (the Worker builds the redirect URI from the
+host the sign-in started on, so connect from library.simonhimself.com; Google refuses the unverified
+app's "Go to … (unsafe)" step on workers.dev hosts). The consent screen is published
 (in production, unverified), so refresh tokens don't expire after 7 days.
 
 | Item | Where |
@@ -157,7 +159,10 @@ Unsubscribed channels keep their videos (flagged). Stars live only in the app.
 
 Connect: open the YouTube view and click **Connect YouTube** (Google shows an "unverified app" warning
 once: Advanced → Go to …). Reconnect the same way if the status shows `invalid_grant`.
-`/privacy` is a short privacy note; it is behind Access like the rest of the host.
+`/privacy` is a short privacy note. It is public on library.simonhimself.com through a separate Access
+app, "Library privacy (public)" (`library.simonhimself.com/privacy`, policy Bypass everyone); everything
+else on that host is in the "X Bookmarks" Access app (same AUD as workers.dev, so `ACCESS_AUD` is unchanged).
+The Worker serves `/privacy` without checking the Access token.
 
 ## Recovery
 
