@@ -96,6 +96,11 @@ mark{background:color-mix(in srgb,#ffd400 55%,transparent);color:inherit;border-
   .grid{columns:1}
   #sortSel{max-width:118px;font-size:14px}
 }
+.rm{border:1px solid var(--line);background:none;color:var(--muted);border-radius:8px;padding:2px 8px;cursor:pointer;font-size:12px;margin-left:8px}
+.rm:hover{color:#dc2626;border-color:#dc2626}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#111;color:#fff;border-radius:10px;padding:10px 14px;font-size:14px;display:flex;gap:12px;align-items:center;box-shadow:0 6px 24px rgba(0,0,0,.3);z-index:50}
+.toast[hidden]{display:none}
+.toast button{border:0;background:none;color:#93c5fd;font-weight:600;cursor:pointer;font-size:14px}
 </style>
 </head>
 <body>
@@ -123,6 +128,7 @@ mark{background:color-mix(in srgb,#ffd400 55%,transparent);color:inherit;border-
   <div class="status"><div id="count">Loading…</div><div class="active" id="active"></div></div>
   <div class="grid" id="grid"></div>
   <div id="sentinel"></div>
+  <div class="toast" id="toast" hidden><span id="toastMsg"></span><button id="undo">Undo</button></div>
 </main>
 </div>
 <script>
@@ -230,7 +236,7 @@ ${o.t?`<div class="tx ${long?"clamp":""}">${linkify(o.t)}</div>${long?'<button c
 ${mediaHtml(o.m,`https://x.com/${o.u}/status/${o.i}`)}
 ${quoteHtml(o.q)}
 ${links.length?`<div class="links">${links.slice(0,3).map(u=>`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer"><b>${esc(domain(u))}</b><span>${esc(u.replace(/^https?:\/\/(www\.)?[^/]+/,"")||"/")}</span></a>`).join("")}</div>`:""}
-<div class="ft">${tags}<span class="sp"></span><span title="Bookmark #${o.rank} (1 = most recent)">#${o.rank}</span></div></article>`;
+<div class="ft">${tags}<span class="sp"></span><span title="Bookmark #${o.rank} (1 = most recent)">#${o.rank}</span><button class="rm" data-remove="${o.i}" title="Remove from the app; unbookmarked on X at the next daily sync">Remove</button></div></article>`;
 }
 function renderMore(){
   const g=$("#grid");
@@ -263,6 +269,29 @@ document.addEventListener("click",e=>{
 const side=$("#side"),bd=$("#backdrop");
 $("#fbtn").onclick=()=>{side.classList.add("open");bd.classList.add("open")};
 bd.onclick=()=>{side.classList.remove("open");bd.classList.remove("open")};
+
+// remove / undo
+async function post(path,id){const r=await fetch(path,{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({id})});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||r.status);return j}
+let undoStack=[],toastT;
+function toast(msg,undo){$("#toastMsg").textContent=msg;$("#undo").hidden=!undo;$("#toast").hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>{$("#toast").hidden=true},8000)}
+function relabel(){N=ITEMS.length;ITEMS.forEach((o,ix)=>o.rank=ix+1)}
+async function removeItem(id,btn){
+  const ix=ITEMS.findIndex(o=>o.i===id);if(ix<0)return;
+  if(btn)btn.disabled=true;
+  try{await post("/api/remove",id)}catch(e){if(btn)btn.disabled=false;toast("Couldn't remove: "+e.message);return}
+  const [o]=ITEMS.splice(ix,1);undoStack.push({o,ix});relabel();
+  const el=btn&&btn.closest(".card");if(el)el.remove();
+  filtered=filtered.filter(x=>x.i!==id);if(shown>0)shown--;
+  $("#count").textContent=filtered.length.toLocaleString()+" of "+N.toLocaleString()+" bookmarks";renderFacets();
+  toast("Removed. It will be unbookmarked on X at the next sync.",true);
+}
+$("#undo").onclick=async()=>{
+  const u=undoStack.pop();if(!u)return;
+  try{await post("/api/restore",u.o.i)}catch(e){undoStack.push(u);toast("Couldn't undo: "+e.message);return}
+  ITEMS.splice(Math.min(u.ix,ITEMS.length),0,u.o);relabel();apply();
+  toast("Restored.",undoStack.length>0);
+};
+document.addEventListener("click",e=>{const b=e.target.closest("[data-remove]");if(b){e.stopPropagation();removeItem(b.dataset.remove,b)}},true);
 
 function saveHash(){const p=new URLSearchParams();if(st.q)p.set("q",st.q);if(st.tags.size)p.set("tags",[...st.tags].join(","));if(st.authors.size)p.set("au",[...st.authors].join(","));if(st.from)p.set("from",st.from);if(st.to)p.set("to",st.to);if(st.media)p.set("media","1");if(st.link)p.set("link","1");if(st.quote)p.set("quote","1");if(st.sort!=="bm")p.set("sort",st.sort);const h=p.toString();history.replaceState(null,"",h?"#"+h:location.pathname)}
 function loadHash(){const p=new URLSearchParams(location.hash.slice(1));st.q=p.get("q")||"";$("#q").value=st.q;(p.get("tags")||"").split(",").filter(Boolean).forEach(t=>st.tags.add(t));(p.get("au")||"").split(",").filter(Boolean).forEach(t=>st.authors.add(t));st.from=p.get("from");st.to=p.get("to");st.media=p.get("media")==="1";st.link=p.get("link")==="1";st.quote=p.get("quote")==="1";st.sort=p.get("sort")||"bm";$("#sortSel").value=st.sort;$("#hasMedia").checked=st.media;$("#hasLink").checked=st.link;$("#hasQuote").checked=st.quote}

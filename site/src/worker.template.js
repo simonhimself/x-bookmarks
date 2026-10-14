@@ -1,5 +1,7 @@
 // x-bookmarks Worker: serves Simon's private X bookmarks browser.
-// Read-only: there are NO write endpoints. Data is written to D1 from the box (sync/).
+// Bookmark data is written to D1 from the box (sync/). The only write endpoints are
+// POST /api/remove and POST /api/restore, which queue or un-queue a post in the `removals` table
+// (same-origin JSON only). The daily sync unbookmarks queued posts on X and marks them done.
 // Protected by Cloudflare Access; the Worker also verifies the Access JWT itself (defense in depth).
 const HTML = __HTML__;
 const TAXONOMY = __TAXONOMY__;
@@ -70,11 +72,52 @@ async function bookmarks(req, env, ctx) {
   const hit = await cache.match(ckey);
   if (hit) body = await hit.text();
   if (!body) {
-    const { results } = await env.DB.prepare("SELECT * FROM bookmarks ORDER BY seq DESC").all();
+    const { results } = await env.DB.prepare("SELECT * FROM bookmarks WHERE id NOT IN (SELECT id FROM removals) ORDER BY seq DESC").all();
     body = JSON.stringify({ version: ver, taxonomy: TAXONOMY, items: results.map(rowToItem) });
     ctx.waitUntil(cache.put(ckey, new Response(body, { headers: { "Cache-Control": "max-age=86400" } })));
   }
   return new Response(body, { headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "private, no-cache", ETag: etag, ...SEC_HEADERS } });
+}
+
+const JSON_HEADERS = { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", ...SEC_HEADERS };
+const jres = (obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: JSON_HEADERS });
+
+// CSRF guard for writes: Access cookies ride along on cross-site requests, so require a same-origin
+// browser request (Origin must equal ours, Sec-Fetch-Site if present must be same-origin) with a JSON body.
+function sameOrigin(req, url) {
+  const origin = req.headers.get("Origin");
+  if (!origin || origin !== url.origin) return false;
+  const sfs = req.headers.get("Sec-Fetch-Site");
+  if (sfs && sfs !== "same-origin") return false;
+  return (req.headers.get("Content-Type") || "").toLowerCase().startsWith("application/json");
+}
+
+async function bumpVersion(env) {
+  // Strictly increase so the ETag/cache key changes even within the same second.
+  await env.DB.prepare("INSERT INTO meta(k,v) VALUES('data_version', ?1) ON CONFLICT(k) DO UPDATE SET v = CAST(MAX(CAST(v AS INTEGER) + 1, CAST(?1 AS INTEGER)) AS TEXT)")
+    .bind(String(Math.floor(Date.now() / 1000))).run();
+}
+
+async function writeRoute(req, env, url) {
+  if (!sameOrigin(req, url)) return jres({ error: "cross-origin or non-JSON request refused" }, 403);
+  let body;
+  try { body = await req.json(); } catch { return jres({ error: "invalid JSON" }, 400); }
+  const id = body && String(body.id || "");
+  if (!/^\d{1,25}$/.test(id)) return jres({ error: "invalid id" }, 400);
+  const exists = await env.DB.prepare("SELECT 1 AS x FROM bookmarks WHERE id = ?1").bind(id).first("x");
+  if (!exists) return jres({ error: "unknown bookmark" }, 404);
+  if (url.pathname === "/api/remove") {
+    await env.DB.prepare("INSERT INTO removals(id, removed_at) VALUES(?1, ?2) ON CONFLICT(id) DO NOTHING").bind(id, new Date().toISOString()).run();
+    await bumpVersion(env);
+    return jres({ ok: true, id, removed: true });
+  }
+  // /api/restore: only while still pending; once unbookmarked on X it can't be undone here.
+  const row = await env.DB.prepare("SELECT done_at FROM removals WHERE id = ?1").bind(id).first();
+  if (!row) return jres({ ok: true, id, removed: false });
+  if (row.done_at) return jres({ error: "already unbookmarked on X; bookmark it again there" }, 409);
+  await env.DB.prepare("DELETE FROM removals WHERE id = ?1 AND done_at IS NULL").bind(id).run();
+  await bumpVersion(env);
+  return jres({ ok: true, id, removed: false });
 }
 
 export default {
@@ -84,6 +127,10 @@ export default {
     if (!local) {
       const user = await verifyAccess(req, env);
       if (!user) return new Response("Forbidden: sign in through Cloudflare Access.", { status: 403, headers: { "Content-Type": "text/plain", ...SEC_HEADERS } });
+    }
+    if (url.pathname === "/api/remove" || url.pathname === "/api/restore") {
+      if (req.method !== "POST") return new Response("Method not allowed", { status: 405, headers: { Allow: "POST", ...SEC_HEADERS } });
+      return writeRoute(req, env, url);
     }
     if (req.method !== "GET" && req.method !== "HEAD") return new Response("Method not allowed", { status: 405, headers: { Allow: "GET, HEAD", ...SEC_HEADERS } });
     if (url.pathname === "/" || url.pathname === "/index.html")
